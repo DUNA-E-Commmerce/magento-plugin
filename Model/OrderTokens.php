@@ -188,7 +188,7 @@ class OrderTokens
 
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
 
-        // $this->helper->log('debug','Taxes:', [$tax_amount]);
+        $this->helper->log('debug','Taxes:', [$tax_amount]);
 
         $totals += $tax_amount;
 
