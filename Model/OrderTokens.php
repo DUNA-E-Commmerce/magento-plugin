@@ -14,6 +14,7 @@ use Magento\Catalog\Model\Category;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Encryption\EncryptorInterface;
 
+
 class OrderTokens
 {
 
@@ -142,6 +143,9 @@ class OrderTokens
      */
     private function request($body)
     {
+        //log
+       // $this->helper->log('debug', 'request body', [$body]);
+        
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
@@ -189,6 +193,9 @@ class OrderTokens
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
 
         $this->helper->log('debug','Taxes:', [$tax_amount]);
+        $this->helper->log('debug','quote:', [$quote]);
+        $this->helper->log('debug','quote-method:', [$quote->getShippingAddress()->getShippingMethod()]);
+        
 
         $totals += $tax_amount;
 
@@ -217,7 +224,7 @@ class OrderTokens
                 ]
             ]
         ];
-
+      
         return $this->getShippingData($body, $quote);
     }
 
@@ -417,7 +424,7 @@ class OrderTokens
 
         $body = json_encode($this->getBody($quote));
 
-        $this->helper->log('debug', 'Json to Tokenize:', [$body]);
+       // $this->helper->log('debug', 'Json to Tokenize:', [$body]);
 
         return $this->request($body);
     }
@@ -430,7 +437,7 @@ class OrderTokens
     {
         $token = $this->tokenize();
 
-        $this->helper->log('debug', 'Token:', [$token]);
+        //$this->helper->log('debug', 'Token:', [$token]);
 
         return $token;
     }
