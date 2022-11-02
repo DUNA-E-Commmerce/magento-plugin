@@ -28,12 +28,12 @@
                     <source_model>DUna\Payments\Model\Config\Source\Sandobox</source_model>
                 </field>
                 <field id="private_key_stage" translate="label comment" type="obscure" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Private Key Stage</label>
+                    <label>Private Key Sandbox</label>
                     <comment>On the server side of your application. (In backend. Example: When an order is tokenized)</comment>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                 </field>
                 <field id="public_key_stage" translate="label comment" type="obscure" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Public Key Stage</label>
+                    <label>Public Key Sandbox</label>
                     <comment> The public will be used at the browser level (In frontend. Example: When configuring a JS plugin)</comment>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                 </field>

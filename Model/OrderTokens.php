@@ -11,14 +11,14 @@ use DUna\Payments\Helper\Data;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Catalog\Model\Category;
-use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Encryption\EncryptorInterface;
 
 class OrderTokens
 {
 
     const URL_PRODUCTION = 'https://apigw.getduna.com/merchants/orders';
-    const URL_STAGING = 'https://staging-apigw.getduna.com/merchants/orders';
+    const URL_STAGING = 'https://api.stg.deuna.io/merchants/orders';
+    const URL_DEVELOPMENT = 'https://api.dev.deuna.io/merchants/orders';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
@@ -92,17 +92,17 @@ class OrderTokens
      */
     private function getUrl(): string
     {
-        $env = $this->helper->getEnv();
+        $env = $this->getEnvironment();
 
         switch($env) {
-            case 'production':
-                return self::URL_PRODUCTION;
+            case 'dev':
+                return self::URL_DEVELOPMENT;
                 break;
-            case 'staging':
+            case 'stg':
                 return self::URL_STAGING;
                 break;
             default:
-                return self::URL_STAGING;
+                return self::URL_PRODUCTION;
                 break;
         }
     }
@@ -147,6 +147,9 @@ class OrderTokens
         $http_ver = '1.1';
         $headers = $this->getHeaders();
 
+        if($this->getEnvironment()!=='prod')
+            $this->helper->log('debug', 'URL Requested', [$url]);
+
         $configuration['header'] = false;
         $this->curl->setConfig($configuration);
 
@@ -182,15 +185,6 @@ class OrderTokens
     {
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
-
-        $objectManager = ObjectManager::getInstance();
-        $cart = $objectManager->get('\Magento\Checkout\Model\Cart');
-        $quo = $cart->getQuote();
-
-        $shippingMethod = $quo->getShippingAddress();
-
-        var_dump($shippingMethod);
-        die();
 
         $discounts = $this->getDiscounts($quote);
 
@@ -441,5 +435,17 @@ class OrderTokens
         $this->helper->log('debug', 'Token:', [$token]);
 
         return $token;
+    }
+
+    public function getEnvironment() {
+        $domain = $this->storeManager->getStore()->getBaseUrl();
+
+        if(str_contains($domain, 'dev.')) {
+            return 'dev';
+        } else if(str_contains($domain, 'stg.')) {
+            return 'stg';
+        } else {
+            return 'prod';
+        }
     }
 }
