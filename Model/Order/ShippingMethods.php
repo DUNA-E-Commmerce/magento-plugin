@@ -12,7 +12,6 @@ use DUna\Payments\Model\OrderTokens;
 use Magento\Framework\Exception\StateException;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
-use Magento\Quote\Api\Data\EstimateAddressInterface;
 
 
 /**
@@ -84,7 +83,6 @@ class ShippingMethods implements ShippingMethodsInterface
     /**
      * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
      * @param \Magento\Quote\Model\Cart\ShippingMethodConverter $converter
-     * @param Quote\TotalsCollector $totalsCollector
      */
     public function __construct(
         \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
