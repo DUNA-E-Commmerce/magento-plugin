@@ -22,11 +22,11 @@ define([
     'ko',
     'mage/url',
     'https://cdn.getduna.com/cdl/index.js',
-    'https://cdn.getduna.com/checkout-widget/index.js',
+    'https://cdn.getduna.com/checkout-widget/v1.0.0/index.js',
     'https://cdn.stg.deuna.io/cdl/index.js',
-    'https://cdn.stg.deuna.io/checkout-widget/index.js',
+    'https://cdn.stg.deuna.io/checkout-widget/v1.0.0/index.js',
     'https://cdn.dev.deuna.io/cdl/index.js',
-    'https://cdn.dev.deuna.io/checkout-widget/index.js',
+    'https://cdn.dev.deuna.io/checkout-widget/v1.0.0/index.js',
 ], function ($, Component, ko, Url, DeunaCDL, DunaCheckout, DeunaCDLStg, DunaCheckoutStg, DeunaCDLDev, DunaCheckoutDev) {
     'use strict';
 
