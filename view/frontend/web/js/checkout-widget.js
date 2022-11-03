@@ -10,17 +10,23 @@ function isStaging() {
     return hostname.indexOf('stg.') ? true : false;
 }
 
+if(isDev()) {
+    console.log('Environment: Develop');
+} else if(isStaging()) {
+    console.log('Environment: Staging');
+}
+
 define([
     'jquery',
     'uiComponent',
     'ko',
     'mage/url',
     'https://cdn.getduna.com/cdl/index.js',
-    'https://cdn.getduna.com/checkout-widget/v1.0.0/index.js',
+    'https://cdn.getduna.com/checkout-widget/index.js',
     'https://cdn.stg.deuna.io/cdl/index.js',
-    'https://cdn.stg.deuna.io/checkout-widget/v1.0.0/index.js',
+    'https://cdn.stg.deuna.io/checkout-widget/index.js',
     'https://cdn.dev.deuna.io/cdl/index.js',
-    'https://cdn.dev.deuna.io/checkout-widget/v1.0.0/index.js',
+    'https://cdn.dev.deuna.io/checkout-widget/index.js',
 ], function ($, Component, ko, Url, DeunaCDL, DunaCheckout, DeunaCDLStg, DunaCheckoutStg, DeunaCDLDev, DunaCheckoutDev) {
     'use strict';
 
@@ -44,22 +50,22 @@ define([
         initialize: function () {
             this._super();
         },
-        configure: function (data) {
+        configure: async function (data) {
             const obj = JSON.parse(data);
             if(isDev()) {
-                this.dunaCheckout['dev'].configure({
+                await this.dunaCheckout['dev'].configure({
                     apiKey: this.apiKey,
                     env: 'develop',
                     orderToken: obj.orderToken
                 });
             } else if(isStaging()) {
-                this.dunaCheckout['stg'].configure({
+                await this.dunaCheckout['stg'].configure({
                     apiKey: this.apiKey,
                     env: 'staging',
                     orderToken: obj.orderToken
                 });
             } else {
-                this.dunaCheckout['prod'].configure({
+                await this.dunaCheckout['prod'].configure({
                     apiKey: this.apiKey,
                     env: 'production',
                     orderToken: obj.orderToken

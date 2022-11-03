@@ -112,13 +112,16 @@ class OrderTokens
      */
     public function getPrivateKey(): string
     {
-        $env = $this->helper->getEnv();
+        $env = $this->getEnvironment();
 
-        if ($env == 'production') {
-            $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_PRODUCTION);
-        }
-        if ($env == 'staging') {
+        $devPrivateKey = '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
+
+        if ($env == 'dev') {
+            return $devPrivateKey;
+        } else if ($env == 'stg') {
             $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_STAGING);
+        } else {
+            $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_PRODUCTION);
         }
 
         return $this->encryptor->decrypt($privateKey);
@@ -147,8 +150,11 @@ class OrderTokens
         $http_ver = '1.1';
         $headers = $this->getHeaders();
 
-        if($this->getEnvironment()!=='prod')
+        if($this->getEnvironment()!=='prod') {
+            $this->helper->log('debug', 'Environment', [$this->getEnvironment()]);
             $this->helper->log('debug', 'URL Requested', [$url]);
+            $this->helper->log('debug', 'API-KEY', [$this->getPrivateKey()]);
+        }
 
         $configuration['header'] = false;
         $this->curl->setConfig($configuration);

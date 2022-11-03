@@ -57,14 +57,27 @@ class Data extends AbstractHelper
      */
     public function getEnv(): string
     {
-        $mode = $this->getGeneralConfig('mode');
-        if ($mode == self::MODE_PRODUCTION) {
-            $env = 'production';
+        // $mode = $this->getGeneralConfig('mode');
+        // if ($mode == self::MODE_PRODUCTION) {
+        //     $env = 'production';
+        // }
+        // if ($mode == self::MODE_STAGING) {
+        //     $env = 'staging';
+        // }
+        // return $env;
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
+
+        $domain = $storeManager->getStore()->getBaseUrl();
+
+        if(str_contains($domain, 'dev.')) {
+            return 'develop';
+        } else if(str_contains($domain, 'stg.')) {
+            return 'staging';
+        } else {
+            return 'production';
         }
-        if ($mode == self::MODE_STAGING) {
-            $env = 'staging';
-        }
-        return $env;
     }
 
     /**
