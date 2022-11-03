@@ -194,7 +194,7 @@ class OrderTokens
 
         $this->helper->log('debug','Taxes:', [$tax_amount]);
         $this->helper->log('debug','quote:', [$quote]);
-        $this->helper->log('debug','quote-method:', [$quote->getShippingAddress()->getShippingMethod()]);
+        $this->helper->log('debug','quote-method-pedrito:', [$quote->getShippingAddress()->getShippingMethod()]);
         
 
         $totals += $tax_amount;
@@ -424,7 +424,7 @@ class OrderTokens
 
         $body = json_encode($this->getBody($quote));
 
-       // $this->helper->log('debug', 'Json to Tokenize:', [$body]);
+        $this->helper->log('debug', 'Json to Tokenize:', [$body]);
 
         return $this->request($body);
     }

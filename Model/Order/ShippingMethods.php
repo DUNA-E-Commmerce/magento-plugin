@@ -12,7 +12,7 @@ use DUna\Payments\Model\OrderTokens;
 use Magento\Framework\Exception\StateException;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
-
+use Magento\Quote\Api\Data\ShippingMethodInterface;
 
 /**
  * Class ShippingMethods
@@ -31,7 +31,7 @@ class ShippingMethods implements ShippingMethodsInterface
      */
 
 
- 
+    protected $shippingMethod;
 
     protected $converter;
 
@@ -85,6 +85,7 @@ class ShippingMethods implements ShippingMethodsInterface
      * @param \Magento\Quote\Model\Cart\ShippingMethodConverter $converter
      */
     public function __construct(
+        \Magento\Quote\Api\Data\ShippingMethodInterface $shippingMethod,
         \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
         \Magento\Quote\Model\Cart\ShippingMethodConverter $converter,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
@@ -99,6 +100,7 @@ class ShippingMethods implements ShippingMethodsInterface
         OrderTokens $orderTokens,
         CollectionFactory $regionCollectionFactory
     ) {
+        $this->shippingMethod = $shippingMethod;
         $this->quoteRepository = $quoteRepository;
         $this->converter = $converter;
         $this->storeManager = $storeManager;
@@ -139,7 +141,8 @@ class ShippingMethods implements ShippingMethodsInterface
       
         $this->helper->log('debug','shippingMethod-selected1:', [$shippingMethod1]);
         $this->helper->log('debug','shippingMethod-selected2:', [$shippingMethod2]);
-       // $this->helper->log('debug','shippingMethod-selected-getShippingDescription:', [$quote->getData()]);
+        $this->helper->log('debug','shippingMethod-getMethodTitle:', [$this->shippingMethod]);
+        $this->helper->log('debug','shippingMethod-selected-getShippingDescription:', [$quote->getData()]);
 
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
