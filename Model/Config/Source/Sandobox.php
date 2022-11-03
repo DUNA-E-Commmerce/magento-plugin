@@ -30,8 +30,8 @@ class Sandobox implements ArrayInterface
     public function toArray()
     {
         $choose = [
-            '1' => 'Staging',
-            '2' => 'Production'
+            '1' => 'Sandbox',
+            '2' => 'Live'
         ];
         return $choose;
     }

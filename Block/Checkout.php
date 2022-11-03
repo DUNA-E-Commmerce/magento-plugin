@@ -49,10 +49,12 @@ class Checkout extends Template
     public function getApiKey(): string
     {
         $env = $this->helper->getEnv();
-        if ($env == 'production') {
+
+        if($env == 'develop') {
+            return '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
+        } else if ($env == 'production') {
             $publicKey = $this->helper->getGeneralConfig(self::PUBLIC_KEY_PRODUCTION);
-        }
-        if ($env == 'staging') {
+        } else if ($env == 'staging') {
             $publicKey = $this->helper->getGeneralConfig(self::PUBLIC_KEY_STAGING);
         }
         return $this->encryptor->decrypt($publicKey);
