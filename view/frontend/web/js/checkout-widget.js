@@ -81,7 +81,7 @@ define([
                 url: tokenUrl
             })
             .done(async function (data) {
-                self.configure(data);
+                await self.configure(data);
 
                 if(isDev())
                     await self.dunaCheckout['dev'].show();
