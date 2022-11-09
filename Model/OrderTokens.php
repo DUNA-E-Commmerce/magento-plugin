@@ -2,7 +2,9 @@
 
 namespace DUna\Payments\Model;
 
+use Magento\Framework\Event\ObserverInterface; 
 use Magento\Checkout\Model\Session;
+use Magento\Shipping\Model\Config as shippingConfig;
 use Magento\Framework\HTTP\Adapter\Curl;
 use Magento\Framework\Exception\LocalizedException;
 use Zend_Http_Client;
@@ -12,6 +14,13 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Catalog\Model\Category;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Quote\Api\ShippingMethodManagementInterface;
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Quote\Api\Data\ShippingAssignmentInterface;
+use Magento\Quote\Model\QuoteIdMaskFactory;
+use Magento\Checkout\Api\Data\TotalsInformationInterface;
+use Magento\Checkout\Api\TotalsInformationManagementInterface;
+
 
 
 class OrderTokens
@@ -38,6 +47,10 @@ class OrderTokens
      * @var Json
      */
     private $json;
+    /**
+     * @var Observer
+     */
+    private $observer;
 
     /**
      * @var Data
@@ -48,16 +61,41 @@ class OrderTokens
      * @var StoreManagerInterface
      */
     private $storeManager;
+    /**
+     * @var ShippingAssignmentInterface
+     */
+    private $shippingAssignment;
+
+    /**
+     * @var ShippingMethodManagementInterface
+     */
+    private $shippingMethodManager;
 
     /**
      * @var PriceCurrencyInterface
      */
     private $priceCurrency;
+    /**
+     * @var AddressRepositoryInterface
+     */
+    private $addressRepository;
 
     /**
      * @var Category
      */
     private $category;
+    /**
+     * @var TotalsInformationInterface
+     */
+    private $totalsInformationInterface;
+    /**
+     * @var TotalsInformationManagementInterface
+     */
+    private $totalsInformationManagementInterface;
+    /**
+     * @var QuoteIdMaskFactory
+     */
+    private $quoteIdMaskFactory;
 
     /**
      * @var EncryptorInterface
@@ -74,7 +112,15 @@ class OrderTokens
         Category $category,
         EncryptorInterface $encryptor,
         \Magento\SalesRule\Model\Coupon $coupon,
-        \Magento\SalesRule\Model\Rule $saleRule
+        \Magento\SalesRule\Model\Rule $saleRule,
+        \Magento\Framework\Event\Observer $observer,
+        \Magento\Quote\Api\ShippingMethodManagementInterface $shippingMethodManagement,
+        \Magento\Quote\Model\ShippingMethodManagement $shippingMethodManager,
+        AddressRepositoryInterface $addressRepository,
+        ShippingAssignmentInterface $shippingAssignment,
+        QuoteIdMaskFactory $quoteIdMaskFactory,
+        TotalsInformationInterface $totalsInformationInterface,
+        TotalsInformationManagementInterface $totalsInformationManagementInterface
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -86,6 +132,14 @@ class OrderTokens
         $this->encryptor = $encryptor;
         $this->coupon = $coupon;
         $this->saleRule = $saleRule;
+        $this->observer = $observer;
+        $this->shippingMethodManagement = $shippingMethodManagement;
+        $this->shippingMethodManager = $shippingMethodManager;
+        $this->addressRepository = $addressRepository;
+        $this->shippingAssignment = $shippingAssignment;
+        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
+        $this->totalsInformationInterface = $totalsInformationInterface;
+        $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
     }
 
     /**
@@ -137,6 +191,43 @@ class OrderTokens
             'X-Api-Key: ' . $this->getPrivateKey(),
             'Content-Type: ' . self::CONTENT_TYPE
         ];
+    }
+
+        /**
+     * @param $addressId
+     *
+     * @return \Magento\Customer\Api\Data\AddressInterface
+     */
+    public function getAddressData($addressId)
+    {
+        $addressData = null;
+        try {
+            $addressData = $this->addressRepository->getById($addressId);
+        } catch (\Exception $exception) {
+            $this->helper->log('debug', 'getAddressDataById', [$exception->getMessage()]);
+         
+        }
+        return $addressData;
+    }
+
+      /**
+     * @param TotalsInformationManagementInterface $subject
+     * @param int                                  $cartId
+     * @param TotalsInformationInterface           $addressInformation
+     *
+     * @return mixed[]|null
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function AfterCalculate(
+        TotalsInformationManagementInterface $subject,
+        int $cartId,
+        TotalsInformationInterface $addressInformation
+    ) {
+        $this->helper->log('debug', 'Environment', ["soy el metodo AfterCalculate"]);
+      
+        return null;
     }
 
     /**
@@ -196,14 +287,68 @@ class OrderTokens
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
 
-     
+        
         $discounts = $this->getDiscounts($quote);
-
+        
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
+    
+        
+        
+        
+        //$shippingMethods = $this->shippingMethodManager->getList($quote->getId());
+        //$result =  $this->shippingMethodManagement->getList($quote->getId());
+        
+        /**  IMPROVIDED CODE */
+        
+        $getShippingAmount  = $quote->getShippingAddress()->getShippingAmount();
+        $shippingAddress = $quote->getShippingAddress();
+        $shippingMethod =  $shippingAddress->getShippingMethod();
+        $addressId =$quote->getShippingAddress()->getAddressId() ;
+        $getAddreessData = $this->getAddressData($addressId);
 
+
+       
+
+        $quoteIdMask = $this->quoteIdMaskFactory->create()->load("Z3Asbqurllmpd1n81c0FHYGt2cGNtcQQ", 'masked_id');
+        $id = $quoteIdMask->getQuoteId();
+
+        $shipping = $this->shippingAssignment->getShipping();
+       // $address = $shipping->getAddress();
+       // $method = $address->getShippingMethod();
+        $storeId = $quote->getStoreId();
+
+        $this->helper->log('debug','quoteIdMask:', [$quoteIdMask->getData()]);
+       // $this->helper->log('debug','quoteIdMask:', [$quote->getBillingAddress->getData()]);
+
+        $this->helper->log('debug','totalsInformationManagementInterface:', [$this->totalsInformationManagementInterface]);
+        $this->helper->log('debug','totalsInformationInterface:', [$this->totalsInformationInterface->getData()]);
+        $this->helper->log('debug','shippingAssignment->shipping:', [$shipping]);
+        //$this->helper->log('debug','shippingAssignment->address:', [$address]);
+        //$this->helper->log('debug','shippingAssignment->method:', [$method]);
+        $this->helper->log('debug','shippingAssignment->storeId:', [$storeId]);
+        
+
+        $this->helper->log('debug','getShippingAmount:', [$getShippingAmount]);
+        $this->helper->log('debug','getShippingMethodCode:', [$quote->getShippingMethodCode()]);
+        $this->helper->log('debug','quote-getShippingAddress-id:', [$quote->getShippingAddress()->getAddressId() ]);
+        $this->helper->log('debug','quote-getShippingAddress-:', [$quote->getShippingAddress()->getShippingMethod() ]);
+        $this->helper->log('debug','addressData-by-ID:', [$getAddreessData ]);
+    
+
+        //$this->helper->log('debug','resulListt:', [$result]);
         $this->helper->log('debug','Taxes:', [$tax_amount]);
-        $this->helper->log('debug','quote:', [$quote]);
-        $this->helper->log('debug','quote-method-pedrito:', [$quote->getShippingAddress()->getShippingMethod()]);
+        $this->helper->log('debug','Taxes:', [$tax_amount]);
+        $this->helper->log('debug','getShippingAllAddresses:', [$quote->getShippingAllAddresses()]);
+        $this->helper->log('debug','quote-getId:', [$quote->getId()]);
+        $this->helper->log('debug','quote-getShippingAddress-getRegion:', [ $quote->getShippingAddress()->getRegion() ]);
+        $this->helper->log('debug','quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
+        $this->helper->log('debug','quote-method-shippingMethod:', [ $shippingMethod ]);
+        //$this->helper->log('debug','quote-method-shippingMethods:', [ $shippingMethods ]);
+        $this->helper->log('debug','quote-method-data:', [$quote->getData()]);
+        //$this->helper->log('debug','quote-getBillingAddress->getData:', [$quote->getBillingAddress()->getData()]);
+        $this->helper->log('debug','quote-getBillingAddress->getStore:', [$quote->getStore()]);
+        $this->helper->log('debug','quote-getBillingAddress->getStore->getData:', [$quote->getStore()->getData()]);
+        $this->helper->log('debug','quote-getAddress:', [$quote->getAddress()]);
         
 
         $totals += $tax_amount;
@@ -427,7 +572,16 @@ class OrderTokens
      */
     private function tokenize(): string
     {
+        /** IMPROVISED CODE */
+       
+        /** IMPROVISED CODE */
+        
         $quote = $this->checkoutSession->getQuote();
+        
+        $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
+        $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
+
+   
 
         $body = $this->json->serialize($this->getBody($quote));
 
