@@ -11,14 +11,14 @@ use DUna\Payments\Helper\Data;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Catalog\Model\Category;
-use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Encryption\EncryptorInterface;
 
 class OrderTokens
 {
 
     const URL_PRODUCTION = 'https://apigw.getduna.com/merchants/orders';
-    const URL_STAGING = 'https://staging-apigw.getduna.com/merchants/orders';
+    const URL_STAGING = 'https://api.stg.deuna.io/merchants/orders';
+    const URL_DEVELOPMENT = 'https://api.dev.deuna.io/merchants/orders';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
@@ -92,17 +92,17 @@ class OrderTokens
      */
     private function getUrl(): string
     {
-        $env = $this->helper->getEnv();
+        $env = $this->getEnvironment();
 
         switch($env) {
-            case 'production':
-                return self::URL_PRODUCTION;
+            case 'dev':
+                return self::URL_DEVELOPMENT;
                 break;
-            case 'staging':
+            case 'stg':
                 return self::URL_STAGING;
                 break;
             default:
-                return self::URL_STAGING;
+                return self::URL_PRODUCTION;
                 break;
         }
     }
@@ -112,13 +112,16 @@ class OrderTokens
      */
     public function getPrivateKey(): string
     {
-        $env = $this->helper->getEnv();
+        $env = $this->getEnvironment();
 
-        if ($env == 'production') {
-            $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_PRODUCTION);
-        }
-        if ($env == 'staging') {
+        $devPrivateKey = '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
+
+        if ($env == 'dev') {
+            return $devPrivateKey;
+        } else if ($env == 'stg') {
             $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_STAGING);
+        } else {
+            $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_PRODUCTION);
         }
 
         return $this->encryptor->decrypt($privateKey);
@@ -146,6 +149,12 @@ class OrderTokens
         $url = $this->getUrl();
         $http_ver = '1.1';
         $headers = $this->getHeaders();
+
+        if($this->getEnvironment()!=='prod') {
+            $this->helper->log('debug', 'Environment', [$this->getEnvironment()]);
+            $this->helper->log('debug', 'URL Requested', [$url]);
+            $this->helper->log('debug', 'API-KEY', [$this->getPrivateKey()]);
+        }
 
         $configuration['header'] = false;
         $this->curl->setConfig($configuration);
@@ -182,15 +191,6 @@ class OrderTokens
     {
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
-
-        $objectManager = ObjectManager::getInstance();
-        $cart = $objectManager->get('\Magento\Checkout\Model\Cart');
-        $quo = $cart->getQuote();
-
-        $shippingMethod = $quo->getShippingAddress();
-
-        var_dump($shippingMethod);
-        die();
 
         $discounts = $this->getDiscounts($quote);
 
@@ -441,5 +441,17 @@ class OrderTokens
         $this->helper->log('debug', 'Token:', [$token]);
 
         return $token;
+    }
+
+    public function getEnvironment() {
+        $domain = $this->storeManager->getStore()->getBaseUrl();
+
+        if(str_contains($domain, 'dev.')) {
+            return 'dev';
+        } else if(str_contains($domain, 'stg.')) {
+            return 'stg';
+        } else {
+            return 'prod';
+        }
     }
 }
