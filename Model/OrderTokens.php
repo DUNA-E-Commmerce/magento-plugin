@@ -602,7 +602,7 @@ class OrderTokens
     {
         $token = $this->tokenize();
 
-        //$this->helper->log('debug', 'Token:', [$token]);
+        $this->helper->log('debug', 'Token:', [$token]);
 
         return $token;
     }
