@@ -2,13 +2,13 @@
 function isDev() {
     var hostname = document.location.hostname;
 
-    return hostname.indexOf('dev.') ? true : false;
+    return hostname.includes('dev.');
 }
 
 function isStaging() {
     var hostname = document.location.hostname;
 
-    return hostname.indexOf('stg.') ? true : false;
+    return hostname.includes('stg.');
 }
 
 if(isDev()) {
