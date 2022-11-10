@@ -577,9 +577,11 @@ class OrderTokens
         /** IMPROVISED CODE */
         
         $quote = $this->checkoutSession->getQuote();
+        $quote->afterSave();
+        $quote->beforeSave();
         
-        $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
-        $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
+       // $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
+       // $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
 
    
 
