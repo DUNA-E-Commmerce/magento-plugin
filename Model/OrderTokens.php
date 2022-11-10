@@ -170,6 +170,8 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         $devPrivateKey = '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
+        /**IMPROVISED CODE */
+        $devPrivateKey = '92ae29787a00d52d3eee672468c13dc178423855b16a5382bbcb0b5c18f82edd7e87bd625b1a9848894a902e6dc38b84431dc48270b6682db8f6179a9767';
 
         if ($env == 'dev') {
             return $devPrivateKey;
