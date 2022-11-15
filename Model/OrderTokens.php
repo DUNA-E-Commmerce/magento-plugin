@@ -114,7 +114,7 @@ class OrderTokens
     {
         $env = $this->getEnvironment();
 
-        $devPrivateKey = '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
+        $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
         if ($env == 'dev') {
             return $devPrivateKey;
@@ -181,7 +181,9 @@ class OrderTokens
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
 
-        return $response['token'];
+        $this->helper->log('debug','Token Response', [$response]);
+
+        return $response;
     }
 
     /**
@@ -195,8 +197,6 @@ class OrderTokens
         $discounts = $this->getDiscounts($quote);
 
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
-
-        // $this->helper->log('debug','Taxes:', [$tax_amount]);
 
         $totals += $tax_amount;
 
@@ -417,7 +417,7 @@ class OrderTokens
      * @return string
      * @throws LocalizedException
      */
-    private function tokenize(): string
+    private function tokenize(): array
     {
         $quote = $this->checkoutSession->getQuote();
 
@@ -434,7 +434,7 @@ class OrderTokens
      * @return string
      * @throws LocalizedException
      */
-    public function getToken(): string
+    public function getToken(): array
     {
         $token = $this->tokenize();
 

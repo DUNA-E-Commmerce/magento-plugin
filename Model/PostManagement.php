@@ -71,6 +71,7 @@ class PostManagement {
     public function notify()
     {
         $bodyReq = $this->request->getBodyParams();
+        $output = [];
 
         $this->helper->log('debug', 'Notify New Order:', $bodyReq);
 
@@ -88,46 +89,52 @@ class PostManagement {
 
         $quote = $this->quotePrepare($order);
 
-        if ($quote) {
-            $active = $quote->getIsActive();
+        $active = $quote->getIsActive();
 
-            if ($active) {
-                $order = $this->quoteManagement->submit($quote);
+        $output = [
+            'active' => boolval($active),
+            'orderId' => $orderId,
+            'token' => $token
+        ];
 
-                if ($payment_status == 'processed') {
-                    $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true)
-                          ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
-                    $order->setTotalPaid($totalAmount);
-                }
+        if ($active) {
+            $order = $this->quoteManagement->submit($quote);
 
-                if(!empty($userComment)) {
-                    $order->addStatusHistoryComment(
-                        "Comentario de cliente<br>
-                        <i>{$userComment}</i>"
-                    )->setIsVisibleOnFront(true);
-                }
-
-                $order->setShippingAmount($shippingAmount);
-                $order->setBaseShippingAmount($shippingAmount);
-                $order->setGrandTotal($totalAmount);
-                $order->setBaseGrandTotal($totalAmount);
-
-                $order->addStatusHistoryComment(
-                    "Payment Processed by <strong>DEUNA Checkout</strong><br>
-                    <strong>Token:</strong> {$token}<br>
-                    <strong>OrderID:</strong> {$orderId}<br>
-                    <strong>Auth Code:</strong> {$authCode}<br>
-                    <strong>Payment Method:</strong> {$paymentMethod}<br>
-                    <strong>Processor:</strong> {$paymentProcessor}"
-                );
-
-                $order->save();
-            } else {
-                $order = json_encode(['result' => 'success']);
+            if ($payment_status == 'processed') {
+                $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true)
+                      ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                      ->setTotalPaid($totalAmount);
             }
+
+            if(!empty($userComment)) {
+                $order->addStatusHistoryComment(
+                    "Comentario de cliente<br>
+                    <i>{$userComment}</i>"
+                )->setIsVisibleOnFront(true);
+            }
+
+            $order->setShippingAmount($shippingAmount);
+            $order->setBaseShippingAmount($shippingAmount);
+            $order->setGrandTotal($totalAmount);
+            $order->setBaseGrandTotal($totalAmount);
+
+            $order->addStatusHistoryComment(
+                "Payment Processed by <strong>DEUNA Checkout</strong><br>
+                <strong>Token:</strong> {$token}<br>
+                <strong>OrderID:</strong> {$orderId}<br>
+                <strong>Auth Code:</strong> {$authCode}<br>
+                <strong>Payment Method:</strong> {$paymentMethod}<br>
+                <strong>Processor:</strong> {$paymentProcessor}"
+            );
+
+            $order->save();
+
+            $output['status'] = 'saved';
+        } else {
+            $output['status'] = 'failed';
         }
 
-        return $order;
+        return json_encode($output);
     }
 
     /**
@@ -155,8 +162,11 @@ class PostManagement {
      */
     public function getToken()
     {
+        $tokenResponse = $this->orderTokens->getToken();
+
         $json = [
-            'orderToken' => $this->orderTokens->getToken(),
+            'orderToken' => $tokenResponse['token'],
+            'order_id' => $tokenResponse['order']['order_id'],
         ];
 
         return json_encode($json);
