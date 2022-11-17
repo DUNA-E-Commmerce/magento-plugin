@@ -51,7 +51,7 @@ class Checkout extends Template
         $env = $this->helper->getEnv();
 
         if($env == 'develop') {
-            return '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
+            return 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
         } else if ($env == 'production') {
             $publicKey = $this->helper->getGeneralConfig(self::PUBLIC_KEY_PRODUCTION);
         } else if ($env == 'staging') {
