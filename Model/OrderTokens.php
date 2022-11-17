@@ -170,8 +170,7 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         $devPrivateKey = '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
-        /**IMPROVISED CODE */
-        $devPrivateKey = '92ae29787a00d52d3eee672468c13dc178423855b16a5382bbcb0b5c18f82edd7e87bd625b1a9848894a902e6dc38b84431dc48270b6682db8f6179a9767';
+   
 
         if ($env == 'dev') {
             return $devPrivateKey;
@@ -309,17 +308,12 @@ class OrderTokens
         $getAddreessData = $this->getAddressData($addressId);
 
 
-       
-
-        $quoteIdMask = $this->quoteIdMaskFactory->create()->load("Z3Asbqurllmpd1n81c0FHYGt2cGNtcQQ", 'masked_id');
-        $id = $quoteIdMask->getQuoteId();
-
         $shipping = $this->shippingAssignment->getShipping();
        // $address = $shipping->getAddress();
        // $method = $address->getShippingMethod();
         $storeId = $quote->getStoreId();
 
-        $this->helper->log('debug','quoteIdMask:', [$quoteIdMask->getData()]);
+
        // $this->helper->log('debug','quoteIdMask:', [$quote->getBillingAddress->getData()]);
 
         $this->helper->log('debug','totalsInformationManagementInterface:', [$this->totalsInformationManagementInterface]);
@@ -511,7 +505,7 @@ class OrderTokens
             'city' => 'test',
             'zipcode' => 'test',
             'state_name' => 'test',
-            'country_code' => 'test',
+            'country_code' => 'CL',
             'additional_description' => '',
             'address_type' => '',
             'is_default' => false,
@@ -579,8 +573,8 @@ class OrderTokens
         /** IMPROVISED CODE */
         
         $quote = $this->checkoutSession->getQuote();
-        $quote->afterSave();
-        $quote->beforeSave();
+      //  $quote->afterSave();
+      //  $quote->beforeSave();
         
        // $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
        // $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
