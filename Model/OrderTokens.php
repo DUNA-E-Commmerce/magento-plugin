@@ -169,8 +169,7 @@ class OrderTokens
     {
         $env = $this->getEnvironment();
 
-        $devPrivateKey = '115276695e02eda010edfef6e1241498945d0874e62fc2fe6e87bd167c5b9ec30428a4cb281579fe31f325ffab2b992cab74b168059b14cf0178379107fc';
-   
+        $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
         if ($env == 'dev') {
             return $devPrivateKey;
@@ -277,7 +276,9 @@ class OrderTokens
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
 
-        return $response['token'];
+        $this->helper->log('debug','Token Response', [$response]);
+
+        return $response;
     }
 
     /**
@@ -306,46 +307,6 @@ class OrderTokens
         $shippingMethod =  $shippingAddress->getShippingMethod();
         $addressId =$quote->getShippingAddress()->getAddressId() ;
         $getAddreessData = $this->getAddressData($addressId);
-
-
-        $shipping = $this->shippingAssignment->getShipping();
-       // $address = $shipping->getAddress();
-       // $method = $address->getShippingMethod();
-        $storeId = $quote->getStoreId();
-
-
-       // $this->helper->log('debug','quoteIdMask:', [$quote->getBillingAddress->getData()]);
-
-        $this->helper->log('debug','totalsInformationManagementInterface:', [$this->totalsInformationManagementInterface]);
-        $this->helper->log('debug','totalsInformationInterface:', [$this->totalsInformationInterface->getData()]);
-        $this->helper->log('debug','shippingAssignment->shipping:', [$shipping]);
-        //$this->helper->log('debug','shippingAssignment->address:', [$address]);
-        //$this->helper->log('debug','shippingAssignment->method:', [$method]);
-        $this->helper->log('debug','shippingAssignment->storeId:', [$storeId]);
-        
-
-        $this->helper->log('debug','getShippingAmount:', [$getShippingAmount]);
-        $this->helper->log('debug','getShippingMethodCode:', [$quote->getShippingMethodCode()]);
-        $this->helper->log('debug','quote-getShippingAddress-id:', [$quote->getShippingAddress()->getAddressId() ]);
-        $this->helper->log('debug','quote-getShippingAddress-:', [$quote->getShippingAddress()->getShippingMethod() ]);
-        $this->helper->log('debug','addressData-by-ID:', [$getAddreessData ]);
-    
-
-        //$this->helper->log('debug','resulListt:', [$result]);
-        $this->helper->log('debug','Taxes:', [$tax_amount]);
-        $this->helper->log('debug','Taxes:', [$tax_amount]);
-        $this->helper->log('debug','getShippingAllAddresses:', [$quote->getShippingAllAddresses()]);
-        $this->helper->log('debug','quote-getId:', [$quote->getId()]);
-        $this->helper->log('debug','quote-getShippingAddress-getRegion:', [ $quote->getShippingAddress()->getRegion() ]);
-        $this->helper->log('debug','quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
-        $this->helper->log('debug','quote-method-shippingMethod:', [ $shippingMethod ]);
-        //$this->helper->log('debug','quote-method-shippingMethods:', [ $shippingMethods ]);
-        $this->helper->log('debug','quote-method-data:', [$quote->getData()]);
-        //$this->helper->log('debug','quote-getBillingAddress->getData:', [$quote->getBillingAddress()->getData()]);
-        $this->helper->log('debug','quote-getBillingAddress->getStore:', [$quote->getStore()]);
-        $this->helper->log('debug','quote-getBillingAddress->getStore->getData:', [$quote->getStore()->getData()]);
-        $this->helper->log('debug','quote-getAddress:', [$quote->getAddress()]);
-        
 
         $totals += $tax_amount;
 
@@ -566,7 +527,7 @@ class OrderTokens
      * @return string
      * @throws LocalizedException
      */
-    private function tokenize(): string
+    private function tokenize(): array
     {
         /** IMPROVISED CODE */
        
@@ -594,7 +555,7 @@ class OrderTokens
      * @return string
      * @throws LocalizedException
      */
-    public function getToken(): string
+    public function getToken(): array
     {
         $token = $this->tokenize();
 

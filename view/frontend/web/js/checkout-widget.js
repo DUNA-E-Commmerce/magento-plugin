@@ -17,35 +17,40 @@ if(isDev()) {
     console.log('Environment: Staging');
 }
 
-define([
+let deuna_widget_version = 'v1.0.0';
+
+let components = [
     'jquery',
     'uiComponent',
     'ko',
-    'mage/url',
-    'https://cdn.getduna.com/cdl/index.js',
-    'https://cdn.getduna.com/checkout-widget/v1.0.0/index.js',
-    'https://cdn.stg.deuna.io/cdl/index.js',
-    'https://cdn.stg.deuna.io/checkout-widget/v1.0.0/index.js',
-    'https://cdn.dev.deuna.io/cdl/index.js',
-    'https://cdn.dev.deuna.io/checkout-widget/v1.0.0/index.js',
-], function ($, Component, ko, Url, DeunaCDL, DunaCheckout, DeunaCDLStg, DunaCheckoutStg, DeunaCDLDev, DunaCheckoutDev) {
+    'mage/url'
+];
+
+let deunaEnv;
+
+if(isDev()) {
+    deunaEnv = 'develop';
+    components.push('https://cdn.dev.deuna.io/cdl/index.js');
+    components.push(`https://cdn.dev.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
+} else if(isStaging()) {
+    deunaEnv = 'staging';
+    components.push('https://cdn.stg.deuna.io/cdl/index.js');
+    components.push(`https://cdn.stg.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
+} else {
+    deunaEnv = 'production';
+    components.push('https://cdn.getduna.com/cdl/index.js');
+    components.push(`https://cdn.getduna.com/checkout-widget/${deuna_widget_version}/index.js`);
+}
+
+define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
     'use strict';
 
-    if(isDev())
-        window.DeunaCDL = DeunaCDLDev;
-    else if(isStaging())
-        window.DeunaCDL = DeunaCDLStg;
-    else
-        window.DeunaCDL = DeunaCDL;
+    window.DeunaCDL = DeunaCDL;
 
     return Component.extend({
         defaults: {
             template: 'DUna_Payments/widget',
-            dunaCheckout: {
-                'dev': DunaCheckoutDev(),
-                'stg': DunaCheckoutStg(),
-                'prod': DunaCheckout()
-            },
+            dunaCheckout: DunaCheckout(),
             hasEnable: ko.observable(true)
         },
         initialize: function () {
@@ -53,25 +58,14 @@ define([
         },
         configure: async function (data) {
             const obj = JSON.parse(data);
-            if(isDev()) {
-                await this.dunaCheckout['dev'].configure({
-                    apiKey: this.apiKey,
-                    env: 'develop',
-                    orderToken: obj.orderToken
-                });
-            } else if(isStaging()) {
-                await this.dunaCheckout['stg'].configure({
-                    apiKey: this.apiKey,
-                    env: 'staging',
-                    orderToken: obj.orderToken
-                });
-            } else {
-                await this.dunaCheckout['prod'].configure({
-                    apiKey: this.apiKey,
-                    env: 'production',
-                    orderToken: obj.orderToken
-                });
+
+            let config = {
+                apiKey: this.apiKey,
+                env: deunaEnv,
+                orderToken: obj.orderToken
             }
+
+            await this.dunaCheckout.configure(config);
         },
         show: function () {
             const self = this,
@@ -84,12 +78,7 @@ define([
             .done(async function (data) {
                 await self.configure(data);
 
-                if(isDev())
-                    await self.dunaCheckout['dev'].show();
-                else if(isStaging())
-                    await self.dunaCheckout['stg'].show();
-                else
-                    await self.dunaCheckout['prod'].show();
+                await self.dunaCheckout.show();
             });
         },
         preventClick: function () {
