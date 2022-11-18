@@ -308,6 +308,9 @@ class OrderTokens
         $addressId =$quote->getShippingAddress()->getAddressId() ;
         $getAddreessData = $this->getAddressData($addressId);
 
+        $this->helper->log('debug', 'shippingMethod', [$shippingMethod]);
+        $this->helper->log('debug', 'shippingMethod->data()', [$quote->getShippingAddress()->getData()]);
+
         $totals += $tax_amount;
 
         $body = [
@@ -530,15 +533,16 @@ class OrderTokens
     private function tokenize(): array
     {
         /** IMPROVISED CODE */
-       
+       /* Class for management of totals information. $quote->afterSave();
+        $quote->beforeSave(); */
         /** IMPROVISED CODE */
         
         $quote = $this->checkoutSession->getQuote();
-      //  $quote->afterSave();
-      //  $quote->beforeSave();
+        $quote->afterSave();
+        $quote->beforeSave();
         
-       // $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
-       // $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
+        $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
+        $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
 
    
 

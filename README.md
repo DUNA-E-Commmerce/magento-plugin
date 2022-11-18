@@ -40,7 +40,7 @@ ngrok http --region=us --hostname=palejos-magento-test.ngrok.io local.magento.co
 ## se actualiza url para secure
 ```sql
 UPDATE magento.core_config_data
-SET `scope`='default', scope_id=0, `path`='web/secure/base_url', value='https://palejos-magento-test.ngrok.io/', updated_at='2022-10-28 14:47:02'
+SET `scope`='default', scope_id=0, `path`='web/secure/base_url', value='https://palejos-magento-dev.ngrok.io/', updated_at='2022-10-28 14:47:02'
 WHERE config_id=36;
 
 ```
@@ -48,7 +48,7 @@ WHERE config_id=36;
 ## se actualiza url para unsecure
 ```sql
 UPDATE magento.core_config_data
-SET `scope`='default', scope_id=0, `path`='web/unsecure/base_url', value='http://palejos-magento-test.ngrok.io/', updated_at='2022-10-28 14:42:54'
+SET `scope`='default', scope_id=0, `path`='web/unsecure/base_url', value='http://palejos-magento-dev.ngrok.io/', updated_at='2022-10-28 14:42:54'
 WHERE config_id=7;
 
 ```
