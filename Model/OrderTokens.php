@@ -533,8 +533,17 @@ class OrderTokens
     private function tokenize(): array
     {
         /** IMPROVISED CODE */
-       /* Class for management of totals information. $quote->afterSave();
-        $quote->beforeSave(); */
+        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance(); 
+        $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
+        $stores = $storeManager->getStores(true, false);
+        $this->helper->log('debug','storeManager:', [ $stores ]);
+        foreach($stores as $store){
+            
+            $storeName = $store->getName();
+            $this->helper->log('debug','storeName:', [ $storeName ]);
+            $this->helper->log('debug','storeID:', [ $store->getId() ]);
+        }
+
         /** IMPROVISED CODE */
         
         $quote = $this->checkoutSession->getQuote();
