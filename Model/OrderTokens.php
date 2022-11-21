@@ -532,6 +532,7 @@ class OrderTokens
      */
     private function tokenize(): array
     {
+        $quote = $this->checkoutSession->getQuote();
         /** IMPROVISED CODE */
         $objectManager =  \Magento\Framework\App\ObjectManager::getInstance(); 
         $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
@@ -543,10 +544,11 @@ class OrderTokens
             $this->helper->log('debug','storeName:', [ $storeName ]);
             $this->helper->log('debug','storeID:', [ $store->getId() ]);
         }
-
+        $billingAddress = $quote->getBillingAddress();
+       
+        $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
         /** IMPROVISED CODE */
         
-        $quote = $this->checkoutSession->getQuote();
 
         
         $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
