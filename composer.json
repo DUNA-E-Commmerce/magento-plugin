@@ -32,7 +32,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-PLAT-300-magento-permitir-obtener-el-shipping-method-seleccionado-por-el-cliente-en-la-pagina-de-carrito": "0.1.debug-dev"
+            "dev-PLAT-300-magento-permitir-obtener-el-shipping-method-seleccionado-por-el-cliente-en-la-pagina-de-carrito": "0.1-dev"
         }
     }
 }
