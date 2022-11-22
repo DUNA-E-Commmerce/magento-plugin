@@ -2,7 +2,7 @@
 
 namespace DUna\Payments\Model;
 
-use Magento\Framework\Event\ObserverInterface; 
+use Magento\Framework\Event\ObserverInterface;
 use Magento\Checkout\Model\Session;
 use Magento\Shipping\Model\Config as shippingConfig;
 use Magento\Framework\HTTP\Adapter\Curl;
@@ -169,6 +169,10 @@ class OrderTokens
     {
         $env = $this->getEnvironment();
 
+        /**
+         * Comercio: Magento
+         */
+
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
         if ($env == 'dev') {
@@ -205,7 +209,7 @@ class OrderTokens
             $addressData = $this->addressRepository->getById($addressId);
         } catch (\Exception $exception) {
             $this->helper->log('debug', 'getAddressDataById', [$exception->getMessage()]);
-         
+
         }
         return $addressData;
     }
@@ -226,7 +230,7 @@ class OrderTokens
         TotalsInformationInterface $addressInformation
     ) {
         $this->helper->log('debug', 'Environment', ["soy el metodo AfterCalculate"]);
-      
+
         return null;
     }
 
@@ -239,7 +243,7 @@ class OrderTokens
     {
         //log
        // $this->helper->log('debug', 'request body', [$body]);
-        
+
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
@@ -289,19 +293,19 @@ class OrderTokens
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
 
-        
+
         $discounts = $this->getDiscounts($quote);
-        
+
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
-    
-        
-        
-        
+
+
+
+
         //$shippingMethods = $this->shippingMethodManager->getList($quote->getId());
         //$result =  $this->shippingMethodManagement->getList($quote->getId());
-        
+
         /**  IMPROVIDED CODE */
-        
+
         $getShippingAmount  = $quote->getShippingAddress()->getShippingAmount();
         $shippingAddress = $quote->getShippingAddress();
         $shippingMethod =  $shippingAddress->getShippingMethod();
@@ -344,7 +348,7 @@ class OrderTokens
                 ]
             ]
         ];
-      
+
         return $this->getShippingData($body, $quote);
     }
 
@@ -540,27 +544,27 @@ class OrderTokens
     {
         $quote = $this->checkoutSession->getQuote();
         /** IMPROVISED CODE */
-        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance(); 
+        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
         $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
         $stores = $storeManager->getStores(true, false);
         $this->helper->log('debug','storeManager:', [ $stores ]);
         foreach($stores as $store){
-            
+
             $storeName = $store->getName();
             $this->helper->log('debug','storeName:', [ $storeName ]);
             $this->helper->log('debug','storeID:', [ $store->getId() ]);
         }
         $billingAddress = $quote->getBillingAddress();
-       
+
         $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
         /** IMPROVISED CODE */
-        
 
-        
+
+
         $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
         $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
 
-   
+
 
         $body = $this->json->serialize($this->getBody($quote));
 
