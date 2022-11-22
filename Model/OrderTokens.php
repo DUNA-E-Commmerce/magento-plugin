@@ -114,6 +114,9 @@ class OrderTokens
     {
         $env = $this->getEnvironment();
 
+        /**
+         * Comercio Dev: MAGENTO
+         */
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
         if ($env == 'dev') {
