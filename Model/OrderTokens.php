@@ -311,6 +311,12 @@ class OrderTokens
         $this->helper->log('debug', 'shippingMethod', [$shippingMethod]);
         $this->helper->log('debug', 'shippingMethod->data()', [$quote->getShippingAddress()->getData()]);
 
+        $shippingMethodSelected = "delivery";
+
+        if($shippingMethod == "bopis_bopis"){
+            $shippingMethodSelected = "pickup";
+        }
+
         $totals += $tax_amount;
 
         $body = [
@@ -326,7 +332,7 @@ class OrderTokens
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
                 'shipping_options' => [
-                    'type' => 'delivery'
+                    'type' => $shippingMethodSelected,
                 ],
                 'redirect_url' => $domain . 'checkout/onepage/success',
                 'webhook_urls' => [
