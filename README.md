@@ -79,3 +79,5 @@ php bin/magento cache:clean
 ```
 
 Para más detalle ver documentación en notion https://www.notion.so/deuna/Instalaci-n-Magento-2-4-Localhost-e65a579d52a74b0590d6aa8742bd51fe
+
+PARA USO EXCLUSIVO DE DEUNA
