@@ -2,7 +2,9 @@
 
 namespace DUna\Payments\Model;
 
+use Magento\Framework\Event\ObserverInterface;
 use Magento\Checkout\Model\Session;
+use Magento\Shipping\Model\Config as shippingConfig;
 use Magento\Framework\HTTP\Adapter\Curl;
 use Magento\Framework\Exception\LocalizedException;
 use Zend_Http_Client;
@@ -12,6 +14,14 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Catalog\Model\Category;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Quote\Api\ShippingMethodManagementInterface;
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Quote\Api\Data\ShippingAssignmentInterface;
+use Magento\Quote\Model\QuoteIdMaskFactory;
+use Magento\Checkout\Api\Data\TotalsInformationInterface;
+use Magento\Checkout\Api\TotalsInformationManagementInterface;
+
+
 
 class OrderTokens
 {
@@ -37,6 +47,10 @@ class OrderTokens
      * @var Json
      */
     private $json;
+    /**
+     * @var Observer
+     */
+    private $observer;
 
     /**
      * @var Data
@@ -47,16 +61,41 @@ class OrderTokens
      * @var StoreManagerInterface
      */
     private $storeManager;
+    /**
+     * @var ShippingAssignmentInterface
+     */
+    private $shippingAssignment;
+
+    /**
+     * @var ShippingMethodManagementInterface
+     */
+    private $shippingMethodManager;
 
     /**
      * @var PriceCurrencyInterface
      */
     private $priceCurrency;
+    /**
+     * @var AddressRepositoryInterface
+     */
+    private $addressRepository;
 
     /**
      * @var Category
      */
     private $category;
+    /**
+     * @var TotalsInformationInterface
+     */
+    private $totalsInformationInterface;
+    /**
+     * @var TotalsInformationManagementInterface
+     */
+    private $totalsInformationManagementInterface;
+    /**
+     * @var QuoteIdMaskFactory
+     */
+    private $quoteIdMaskFactory;
 
     /**
      * @var EncryptorInterface
@@ -73,7 +112,15 @@ class OrderTokens
         Category $category,
         EncryptorInterface $encryptor,
         \Magento\SalesRule\Model\Coupon $coupon,
-        \Magento\SalesRule\Model\Rule $saleRule
+        \Magento\SalesRule\Model\Rule $saleRule,
+        \Magento\Framework\Event\Observer $observer,
+        \Magento\Quote\Api\ShippingMethodManagementInterface $shippingMethodManagement,
+        \Magento\Quote\Model\ShippingMethodManagement $shippingMethodManager,
+        AddressRepositoryInterface $addressRepository,
+        ShippingAssignmentInterface $shippingAssignment,
+        QuoteIdMaskFactory $quoteIdMaskFactory,
+        TotalsInformationInterface $totalsInformationInterface,
+        TotalsInformationManagementInterface $totalsInformationManagementInterface
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -85,6 +132,14 @@ class OrderTokens
         $this->encryptor = $encryptor;
         $this->coupon = $coupon;
         $this->saleRule = $saleRule;
+        $this->observer = $observer;
+        $this->shippingMethodManagement = $shippingMethodManagement;
+        $this->shippingMethodManager = $shippingMethodManager;
+        $this->addressRepository = $addressRepository;
+        $this->shippingAssignment = $shippingAssignment;
+        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
+        $this->totalsInformationInterface = $totalsInformationInterface;
+        $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
     }
 
     /**
@@ -141,6 +196,43 @@ class OrderTokens
         ];
     }
 
+        /**
+     * @param $addressId
+     *
+     * @return \Magento\Customer\Api\Data\AddressInterface
+     */
+    public function getAddressData($addressId)
+    {
+        $addressData = null;
+        try {
+            $addressData = $this->addressRepository->getById($addressId);
+        } catch (\Exception $exception) {
+            $this->helper->log('debug', 'getAddressDataById', [$exception->getMessage()]);
+
+        }
+        return $addressData;
+    }
+
+      /**
+     * @param TotalsInformationManagementInterface $subject
+     * @param int                                  $cartId
+     * @param TotalsInformationInterface           $addressInformation
+     *
+     * @return mixed[]|null
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function AfterCalculate(
+        TotalsInformationManagementInterface $subject,
+        int $cartId,
+        TotalsInformationInterface $addressInformation
+    ) {
+        $this->helper->log('debug', 'Environment', ["soy el metodo AfterCalculate"]);
+
+        return null;
+    }
+
     /**
      * @param $body
      * @return mixed
@@ -148,6 +240,9 @@ class OrderTokens
      */
     private function request($body)
     {
+        //log
+       // $this->helper->log('debug', 'request body', [$body]);
+
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
@@ -197,9 +292,33 @@ class OrderTokens
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
 
+
         $discounts = $this->getDiscounts($quote);
 
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
+
+
+
+
+        //$shippingMethods = $this->shippingMethodManager->getList($quote->getId());
+        //$result =  $this->shippingMethodManagement->getList($quote->getId());
+
+        /**  IMPROVIDED CODE */
+
+        $getShippingAmount  = $quote->getShippingAddress()->getShippingAmount();
+        $shippingAddress = $quote->getShippingAddress();
+        $shippingMethod =  $shippingAddress->getShippingMethod();
+        $addressId =$quote->getShippingAddress()->getAddressId() ;
+        $getAddreessData = $this->getAddressData($addressId);
+
+        $this->helper->log('debug', 'shippingMethod', [$shippingMethod]);
+        $this->helper->log('debug', 'shippingMethod->data()', [$quote->getShippingAddress()->getData()]);
+
+        $shippingMethodSelected = "delivery";
+
+        if($shippingMethod == "bopis_bopis"){
+            $shippingMethodSelected = "pickup";
+        }
 
         $totals += $tax_amount;
 
@@ -216,7 +335,7 @@ class OrderTokens
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
                 'shipping_options' => [
-                    'type' => 'delivery'
+                    'type' => $shippingMethodSelected,
                 ],
                 'redirect_url' => $domain . 'checkout/onepage/success',
                 'webhook_urls' => [
@@ -359,7 +478,7 @@ class OrderTokens
             'city' => 'test',
             'zipcode' => 'test',
             'state_name' => 'test',
-            'country_code' => 'test',
+            'country_code' => 'CL',
             'additional_description' => '',
             'address_type' => '',
             'is_default' => false,
@@ -423,6 +542,28 @@ class OrderTokens
     private function tokenize(): array
     {
         $quote = $this->checkoutSession->getQuote();
+        /** IMPROVISED CODE */
+        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
+        $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
+        $stores = $storeManager->getStores(true, false);
+        $this->helper->log('debug','storeManager:', [ $stores ]);
+        foreach($stores as $store){
+
+            $storeName = $store->getName();
+            $this->helper->log('debug','storeName:', [ $storeName ]);
+            $this->helper->log('debug','storeID:', [ $store->getId() ]);
+        }
+        $billingAddress = $quote->getBillingAddress();
+
+        $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
+        /** IMPROVISED CODE */
+
+
+
+        $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
+        $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
+
+
 
         $body = $this->json->serialize($this->getBody($quote));
 

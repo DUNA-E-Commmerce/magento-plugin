@@ -1,0 +1,5 @@
+<config  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_quote_address_collect_totals_before">
+        <observer name="checkout_cart_quote" instance="DUna\Payments\Observer\CheckoutCartQuoteObserver"/>
+    </event>
+</config>
