@@ -9,6 +9,9 @@ use Magento\Quote\Model\QuoteFactory;
 use Magento\Quote\Model\QuoteFactory as Quote;
 use Magento\Quote\Api\CartRepositoryInterface as CRI;
 use DUna\Payments\Helper\Data;
+use Magento\Customer\Model\CustomerFactory;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Store\Model\StoreManagerInterface;
 
 class PostManagement {
 
@@ -45,6 +48,12 @@ class PostManagement {
      */
     protected $helper;
 
+    protected $customerFactory;
+
+    protected $customerRepository;
+
+    protected $storeManager;
+
     public function __construct(
         Request $request,
         LoggerInterface $logger,
@@ -53,7 +62,10 @@ class PostManagement {
         OrderTokens $orderTokens,
         Quote $quoteModel,
         CRI $cri,
-        Data $helper
+        Data $helper,
+        CustomerFactory $customerFactory,
+        CustomerRepositoryInterface $customerRepository,
+        StoreManagerInterface $storeManager
     ) {
         $this->request = $request;
         $this->logger = $logger;
@@ -63,6 +75,9 @@ class PostManagement {
         $this->quoteModel = $quoteModel;
         $this->cri = $cri;
         $this->helper = $helper;
+        $this->customerFactory = $customerFactory;
+        $this->customerRepository = $customerRepository;
+        $this->storeManager = $storeManager;
     }
 
     /**
@@ -144,6 +159,8 @@ class PostManagement {
      */
     private function quotePrepare($order)
     {
+        $store = $this->storeManager->getStore();
+        $websiteId = $store->getStoreId();
         $quoteId = $order['order_id'];
 
         $email = $order['payment']['data']['customer']['email'];
@@ -151,6 +168,24 @@ class PostManagement {
         $quote = $this->cri->get($quoteId);
 
         $quote->getPayment()->setMethod('deuna_payments');
+
+        $customer = $this->customerFactory->create();
+
+        $customer->getCustomerByEmail($email,$websiteId);
+
+        if (!$customer->getEntityId()) {
+            // If not avilable then create this customer
+            $customer->setWebsiteId($websiteId)
+                     ->setStore($store)
+                     ->setFirstname($order['shipping_address']['first_name'])
+                     ->setLastname($order['shipping_address']['last_name'])
+                     ->setEmail($email)
+                     ->setPassword($email);
+            $customer->save();
+        }
+
+        $customer = $this->customerRepository->getById($customer->getEntityId());
+        $quote->assignCustomer($customer);
 
         $quote->setCustomerEmail($email);
 
