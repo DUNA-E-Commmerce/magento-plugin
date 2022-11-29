@@ -12,7 +12,7 @@ use DUna\Payments\Model\OrderTokens;
 use Magento\Framework\Exception\StateException;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
-
+use Magento\Quote\Api\Data\ShippingMethodInterface;
 
 /**
  * Class ShippingMethods
@@ -29,6 +29,10 @@ class ShippingMethods implements ShippingMethodsInterface
      *
      * @var ShippingMethodConverter
      */
+
+
+    protected $shippingMethod;
+
     protected $converter;
 
     /**
@@ -81,6 +85,7 @@ class ShippingMethods implements ShippingMethodsInterface
      * @param \Magento\Quote\Model\Cart\ShippingMethodConverter $converter
      */
     public function __construct(
+        \Magento\Quote\Api\Data\ShippingMethodInterface $shippingMethod,
         \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
         \Magento\Quote\Model\Cart\ShippingMethodConverter $converter,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
@@ -95,6 +100,7 @@ class ShippingMethods implements ShippingMethodsInterface
         OrderTokens $orderTokens,
         CollectionFactory $regionCollectionFactory
     ) {
+        $this->shippingMethod = $shippingMethod;
         $this->quoteRepository = $quoteRepository;
         $this->converter = $converter;
         $this->storeManager = $storeManager;
@@ -118,6 +124,7 @@ class ShippingMethods implements ShippingMethodsInterface
     public function get(int $cartId)
     {
         /** @var Quote $quote */
+        /** @var \Magento\Quote\Model\Quote $quote */
         $quote = $this->quoteRepository->getActive($cartId);
 
         // Set Shipping Address
@@ -127,6 +134,15 @@ class ShippingMethods implements ShippingMethodsInterface
         if ($quote->isVirtual() || 0 == $quote->getItemsCount()) {
             return [];
         }
+        //log
+        $shippingMethod1 = $quote->getShippingAddress()->getShippingMethod();
+        $shippingMethod2 = $quote->getShippingAddress()->getShippingMethod();
+
+
+        $this->helper->log('debug','shippingMethod-selected1:', [$shippingMethod1]);
+        $this->helper->log('debug','shippingMethod-selected2:', [$shippingMethod2]);
+        $this->helper->log('debug','shippingMethod-getMethodTitle:', [$this->shippingMethod]);
+        $this->helper->log('debug','shippingMethod-selected-getShippingDescription:', [$quote->getData()]);
 
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
@@ -138,9 +154,12 @@ class ShippingMethods implements ShippingMethodsInterface
         $freeShippingMinAmount = $this->getFreeShippingSubtotal();
 
         $this->helper->log('debug','Free Shipping Min Amount:', [$freeShippingMinAmount]);
+        $this->helper->log('debug','shippingRates:', [$shippingRates]);
 
         foreach ($shippingRates as $method) {
+
             if($method->getMethodCode() == 'freeshipping') {
+
                 if($freeShippingMinAmount <= $quote->getSubtotal()) {
                     $shippingMethods['shipping_methods'][] = [
                         'code' => $method->getMethodCode(),
@@ -152,6 +171,7 @@ class ShippingMethods implements ShippingMethodsInterface
                     ];
                 }
             } else {
+
                 if(!is_null($method->getMethodCode())) {
                     $shippingMethods['shipping_methods'][] = [
                         'code' => $method->getMethodCode(),
@@ -165,10 +185,13 @@ class ShippingMethods implements ShippingMethodsInterface
             }
         }
 
+
         $this->helper->log('debug', 'Shipping Methods:', $shippingMethods);
 
         die($this->json->serialize($shippingMethods));
     }
+
+
 
     /**
      * @param int $cartId
@@ -258,12 +281,7 @@ class ShippingMethods implements ShippingMethodsInterface
     {
         $body = $this->request->getBodyParams();
 
-        $region = $this->regionCollectionFactory->create()
-                  ->addRegionNameFilter($body['state_name'])
-                  ->getFirstItem()
-                  ->toArray();
-
-        $regionId = empty($region) ? 0 : $region['region_id'];
+        $regionId = $this->getRegionId($body['state_name']);
 
         $shippingAddress = $quote->getShippingAddress();
         $shippingAddress->setFirstname($body['first_name']);
@@ -390,5 +408,15 @@ class ShippingMethods implements ShippingMethodsInterface
     private function getFreeShippingSubtotal()
     {
         return $this->_scopeConfig->getValue('carriers/freeshipping/free_shipping_subtotal', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+    }
+
+    public function getRegionId($stateName)
+    {
+        $region = $this->regionCollectionFactory->create()
+                  ->addRegionNameFilter($stateName)
+                  ->getFirstItem()
+                  ->toArray();
+
+        return empty($region) ? 0 : $region['region_id'];
     }
 }

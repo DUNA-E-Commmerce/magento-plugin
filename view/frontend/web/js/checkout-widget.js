@@ -1,3 +1,4 @@
+
 function isDev() {
     var hostname = document.location.hostname;
 
@@ -75,7 +76,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                 url: tokenUrl
             })
             .done(async function (data) {
-                self.configure(data);
+                await self.configure(data);
 
                 await self.dunaCheckout.show();
             });
