@@ -9,8 +9,11 @@ use Magento\Quote\Model\QuoteFactory;
 use Magento\Quote\Model\QuoteFactory as Quote;
 use Magento\Quote\Api\CartRepositoryInterface as CRI;
 use DUna\Payments\Helper\Data;
+use DUna\Payments\Model\Order\ShippingMethods;
 use Magento\Customer\Model\CustomerFactory;
 use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Framework\App\ObjectManager;
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
 class PostManagement {
@@ -54,6 +57,10 @@ class PostManagement {
 
     protected $storeManager;
 
+    protected $orderRepository;
+
+    protected $deunaShipping;
+
     public function __construct(
         Request $request,
         LoggerInterface $logger,
@@ -65,7 +72,9 @@ class PostManagement {
         Data $helper,
         CustomerFactory $customerFactory,
         CustomerRepositoryInterface $customerRepository,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        OrderRepositoryInterface $orderRepository,
+        ShippingMethods $deunaShipping
     ) {
         $this->request = $request;
         $this->logger = $logger;
@@ -78,6 +87,8 @@ class PostManagement {
         $this->customerFactory = $customerFactory;
         $this->customerRepository = $customerRepository;
         $this->storeManager = $storeManager;
+        $this->orderRepository = $orderRepository;
+        $this->deunaShipping = $deunaShipping;
     }
 
     /**
@@ -93,6 +104,7 @@ class PostManagement {
         $order = $bodyReq['order'];
         $orderId = $order['order_id'];
         $payment_status = $order['payment_status'];
+        $email = $order['shipping_address']['email'];
         $token = $order['token'];
         $paymentProcessor = $order['payment']['data']['processor'];
         $metadata = $order['payment']['data']['metadata'];
@@ -102,7 +114,7 @@ class PostManagement {
         $totalAmount = $order['total_amount']/100;
         $authCode = isset($metadata['authorization_code']) ? $metadata['authorization_code'] : 'N/A';
 
-        $quote = $this->quotePrepare($order);
+        $quote = $this->quotePrepare($order, $email);
 
         $active = $quote->getIsActive();
 
@@ -115,12 +127,6 @@ class PostManagement {
         if ($active) {
             $order = $this->quoteManagement->submit($quote);
 
-            if ($payment_status == 'processed') {
-                $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true)
-                      ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                      ->setTotalPaid($totalAmount);
-            }
-
             if(!empty($userComment)) {
                 $order->addStatusHistoryComment(
                     "Comentario de cliente<br>
@@ -132,6 +138,8 @@ class PostManagement {
             $order->setBaseShippingAmount($shippingAmount);
             $order->setGrandTotal($totalAmount);
             $order->setBaseGrandTotal($totalAmount);
+
+            $this->updatePaymentState($order, $payment_status, $totalAmount);
 
             $order->addStatusHistoryComment(
                 "Payment Processed by <strong>DEUNA Checkout</strong><br>
@@ -157,39 +165,52 @@ class PostManagement {
      * @return \Magento\Quote\Api\Data\CartInterface
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
-    private function quotePrepare($order)
+    private function quotePrepare($order, $email)
     {
-        $store = $this->storeManager->getStore();
-        $websiteId = $store->getStoreId();
         $quoteId = $order['order_id'];
-
-        $email = $order['payment']['data']['customer']['email'];
 
         $quote = $this->cri->get($quoteId);
 
         $quote->getPayment()->setMethod('deuna_payments');
 
-        $customer = $this->customerFactory->create();
-
-        $customer->getCustomerByEmail($email,$websiteId);
-
-        if (!$customer->getEntityId()) {
-            // If not avilable then create this customer
-            $customer->setWebsiteId($websiteId)
-                     ->setStore($store)
-                     ->setFirstname($order['shipping_address']['first_name'])
-                     ->setLastname($order['shipping_address']['last_name'])
-                     ->setEmail($email)
-                     ->setPassword($email);
-            $customer->save();
-        }
-
-        $customer = $this->customerRepository->getById($customer->getEntityId());
-        $quote->assignCustomer($customer);
-
+        $quote->setCustomerFirstname($order['shipping_address']['first_name']);
+        $quote->setCustomerLastname($order['shipping_address']['last_name']);
         $quote->setCustomerEmail($email);
 
+        $this->updateAddresses($quote, $order);
+
+        $this->setCustomer($order, $email);
+
         return $quote;
+    }
+
+    private function setCustomer($order, $email)
+    {
+        if(!empty($email)) {
+            $store = $this->storeManager->getStore();
+            $websiteId = $store->getStoreId();
+
+            $customer = $this->customerFactory->create();
+
+            $customer->setWebsiteId($websiteId)->loadByEmail($email);
+
+            if (!$customer->getId()) {
+                // If not avilable then create this customer
+                $customer->setWebsiteId($websiteId)
+                         ->setStore($store)
+                         ->setFirstname($order['shipping_address']['first_name'])
+                         ->setLastname($order['shipping_address']['last_name'])
+                         ->setEmail($email)
+                         ->setPassword($email);
+                $customer->save();
+            }
+
+            $customer = $this->customerRepository->getById($customer->getEntityId());
+
+            return $customer;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -206,5 +227,62 @@ class PostManagement {
 
         return json_encode($json);
     }
+
+    public function updatePaymentState($order, $payment_status, $totalAmount)
+    {
+        if ($payment_status == 'processed') {
+            $orderState = \Magento\Sales\Model\Order::STATE_PROCESSING;
+            $order->setState($orderState)
+                  ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                  ->setTotalPaid($totalAmount)
+                  ->setPaymentMethod('checkmo');
+        }
+    }
+
+    public function updateAddresses($quote, $data)
+    {
+        $shippingData = $data['shipping_address'];
+
+        $regionId = $this->deunaShipping->getRegionId($shippingData['state_name']);
+
+        $shipping_address = [
+            'firstname' => $shippingData['first_name'],
+            'lastname' => $shippingData['last_name'],
+            'street' => $shippingData['address1'].' '.$shippingData['address2'],
+            'city' => $shippingData['city'],
+            'country_id' => $shippingData['country_code'],
+            'region' => $regionId,
+            'postcode' => $shippingData['zipcode'],
+            'telephone' => $shippingData['phone'],
+        ];
+
+        $quote->getShippingAddress()->addData($shipping_address);
+
+        $billingData = $data['billing_address'];
+
+        $regionId = $this->deunaShipping->getRegionId($billingData['state_name']);
+
+        $billing_address = [
+            'firstname' => $billingData['first_name'],
+            'lastname' => $billingData['last_name'],
+            'street' => $billingData['address1'].' '.$billingData['address2'],
+            'city' => $billingData['city'],
+            'country_id' => $billingData['country_code'],
+            'region' => $regionId,
+            'postcode' => $billingData['zipcode'],
+            'telephone' => $billingData['phone'],
+        ];
+
+        $quote->getBillingAddress()->addData($billing_address);
+    }
+
+    // public function updateOrderCustomer($orderId)
+    // {
+    //     $order = $this->orderRepository->get($orderId);
+
+    //     $order->setCustomerId($customer->getId());
+    //     $order->setCustomerIsGuest(0);
+    //     $order->save();
+    // }
 
 }

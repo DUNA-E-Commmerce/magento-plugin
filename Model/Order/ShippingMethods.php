@@ -137,8 +137,8 @@ class ShippingMethods implements ShippingMethodsInterface
         //log
         $shippingMethod1 = $quote->getShippingAddress()->getShippingMethod();
         $shippingMethod2 = $quote->getShippingAddress()->getShippingMethod();
-       
-      
+
+
         $this->helper->log('debug','shippingMethod-selected1:', [$shippingMethod1]);
         $this->helper->log('debug','shippingMethod-selected2:', [$shippingMethod2]);
         $this->helper->log('debug','shippingMethod-getMethodTitle:', [$this->shippingMethod]);
@@ -159,7 +159,7 @@ class ShippingMethods implements ShippingMethodsInterface
         foreach ($shippingRates as $method) {
 
             if($method->getMethodCode() == 'freeshipping') {
-      
+
                 if($freeShippingMinAmount <= $quote->getSubtotal()) {
                     $shippingMethods['shipping_methods'][] = [
                         'code' => $method->getMethodCode(),
@@ -171,7 +171,7 @@ class ShippingMethods implements ShippingMethodsInterface
                     ];
                 }
             } else {
-              
+
                 if(!is_null($method->getMethodCode())) {
                     $shippingMethods['shipping_methods'][] = [
                         'code' => $method->getMethodCode(),
@@ -184,8 +184,8 @@ class ShippingMethods implements ShippingMethodsInterface
                 }
             }
         }
-     
-       
+
+
         $this->helper->log('debug', 'Shipping Methods:', $shippingMethods);
 
         die($this->json->serialize($shippingMethods));
@@ -281,12 +281,7 @@ class ShippingMethods implements ShippingMethodsInterface
     {
         $body = $this->request->getBodyParams();
 
-        $region = $this->regionCollectionFactory->create()
-                  ->addRegionNameFilter($body['state_name'])
-                  ->getFirstItem()
-                  ->toArray();
-
-        $regionId = empty($region) ? 0 : $region['region_id'];
+        $regionId = $this->getRegionId($body['state_name']);
 
         $shippingAddress = $quote->getShippingAddress();
         $shippingAddress->setFirstname($body['first_name']);
@@ -415,4 +410,13 @@ class ShippingMethods implements ShippingMethodsInterface
         return $this->_scopeConfig->getValue('carriers/freeshipping/free_shipping_subtotal', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
     }
 
+    public function getRegionId($stateName)
+    {
+        $region = $this->regionCollectionFactory->create()
+                  ->addRegionNameFilter($stateName)
+                  ->getFirstItem()
+                  ->toArray();
+
+        return empty($region) ? 0 : $region['region_id'];
+    }
 }
