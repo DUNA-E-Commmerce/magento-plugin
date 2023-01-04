@@ -288,6 +288,11 @@ class OrderTokens
         return $response;
     }
 
+    private function replace_null($value, $replace) {
+        if (is_null($value)) return $replace;
+        return $value;
+    }
+
     /**
      * @return array
      */
@@ -327,9 +332,9 @@ class OrderTokens
         if($shippingMethod == "bopis_bopis"){
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
         
-            $nameStore = $stores->getName();
-            $zipCodeStore = $stores->getZipCode();
-            $addressStore = $stores->getStreet()." ".$stores->getNumber();
+            $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
+            $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible"); 
+            $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible"); 
     
             $this->helper->log('debug', 'nameStore', [$nameStore]);
             $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
