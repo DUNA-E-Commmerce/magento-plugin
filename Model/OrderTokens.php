@@ -312,15 +312,7 @@ class OrderTokens
 
         /**  IMPROVIDED CODE */
 
-        $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-        
-        $nameStore = $stores->getName();
-        $zipCodeStore = $stores->getZipCode();
-        $addressStore = $stores->getStreet()." ".$stores->getNumber();
-
-        $this->helper->log('debug', 'nameStore', [$nameStore]);
-        $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
-        $this->helper->log('debug', 'addressStore', [$addressStore]);
+    
 
 
 
@@ -336,6 +328,16 @@ class OrderTokens
         $shippingMethodSelected = "delivery";
 
         if($shippingMethod == "bopis_bopis"){
+            $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
+        
+            $nameStore = $stores->getName();
+            $zipCodeStore = $stores->getZipCode();
+            $addressStore = $stores->getStreet()." ".$stores->getNumber();
+    
+            $this->helper->log('debug', 'nameStore', [$nameStore]);
+            $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
+            $this->helper->log('debug', 'addressStore', [$addressStore]);
+            
             $shippingMethodSelected = "pickup";
         }
 
