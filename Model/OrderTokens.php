@@ -22,6 +22,8 @@ use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Entrepids\StoresLocator\Model\StoresFactory;
 
+
+
 class OrderTokens
 {
 
@@ -314,7 +316,7 @@ class OrderTokens
 
         /**  IMPROVIDED CODE */
 
-    
+
 
 
 
@@ -331,15 +333,15 @@ class OrderTokens
 
         if($shippingMethod == "bopis_bopis"){
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-        
+
             $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
-            $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible"); 
-            $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible"); 
-    
+            $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible");
+            $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
+
             $this->helper->log('debug', 'nameStore', [$nameStore]);
             $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
             $this->helper->log('debug', 'addressStore', [$addressStore]);
-            
+
             $shippingMethodSelected = "pickup";
         }
 
