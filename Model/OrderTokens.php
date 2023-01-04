@@ -350,6 +350,8 @@ class OrderTokens
 
         $body = [
             'order' => [
+                'store_name' => $nameStore,
+				'address' =>  $addressStore,
                 'order_id' => $quote->getId(),
                 'currency' => $quote->getCurrency()->getQuoteCurrencyCode(),
                 'tax_amount' => $this->priceFormat($tax_amount),
@@ -360,6 +362,10 @@ class OrderTokens
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
+                'contact' => [
+                    'name' => $nameStore,
+                    'phone' => '50445982020',
+                ],
                 'shipping_options' => [
                     'type' => $shippingMethodSelected,
                 ],
