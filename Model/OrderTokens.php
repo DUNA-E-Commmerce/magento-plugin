@@ -20,6 +20,7 @@ use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
+use Entrepids\StoresLocator\Model\StoresFactory;
 
 
 
@@ -32,6 +33,9 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
+
+    /** @var Entrepids\StoresLocator\Model\StoresFactory */
+    private $_stores;
 
     /**
      * @var Session
@@ -120,7 +124,8 @@ class OrderTokens
         ShippingAssignmentInterface $shippingAssignment,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
-        TotalsInformationManagementInterface $totalsInformationManagementInterface
+        TotalsInformationManagementInterface $totalsInformationManagementInterface,
+        StoresFactory $stores
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -140,6 +145,7 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
+        $this->_stores = $stores;
     }
 
     /**
@@ -305,6 +311,18 @@ class OrderTokens
         //$result =  $this->shippingMethodManagement->getList($quote->getId());
 
         /**  IMPROVIDED CODE */
+
+        $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
+        
+        $nameStore = $stores->getName();
+        $zipCodeStore = $stores->getZipCode();
+        $addressStore = $stores->getStreet()." ".$stores->getNumber();
+
+        $this->helper->log('debug', 'nameStore', [$nameStore]);
+        $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
+        $this->helper->log('debug', 'addressStore', [$addressStore]);
+
+
 
         $getShippingAmount  = $quote->getShippingAddress()->getShippingAmount();
         $shippingAddress = $quote->getShippingAddress();
@@ -543,6 +561,7 @@ class OrderTokens
     private function tokenize(): array
     {
         $quote = $this->checkoutSession->getQuote();
+
         /** IMPROVISED CODE */
         $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
         $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
