@@ -330,6 +330,9 @@ class OrderTokens
         $this->helper->log('debug', 'shippingMethod->data()', [$quote->getShippingAddress()->getData()]);
 
         $shippingMethodSelected = "delivery";
+        $nameStore = "";
+        $zipCodeStore = "";
+        $addressStore = "";
 
         if($shippingMethod == "bopis_bopis"){
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
