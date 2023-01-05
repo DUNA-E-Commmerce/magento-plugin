@@ -371,8 +371,8 @@ class OrderTokens
                             'lat' => 0,
                             'lng' => 0
                         ],	'contact' => [
-                            'name' => $nameStore,
-                            'phone' => '50445982020',
+                            'name' => $nameStore
+                           
                         ],
                     ]
                 ],
