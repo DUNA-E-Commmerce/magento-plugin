@@ -13,6 +13,8 @@ use Magento\Framework\Exception\StateException;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Quote\Api\Data\ShippingMethodInterface;
+use Magento\Directory\Helper\Data as DirectoryHelper;
+use Magento\Directory\Model\Country;
 
 /**
  * Class ShippingMethods
@@ -29,6 +31,11 @@ class ShippingMethods implements ShippingMethodsInterface
      *
      * @var ShippingMethodConverter
      */
+
+    /**
+    * @var DirectoryHelper
+    */
+    protected $directoryHelper;
 
 
     protected $shippingMethod;
@@ -98,7 +105,8 @@ class ShippingMethods implements ShippingMethodsInterface
         Request $request,
         Json $json,
         OrderTokens $orderTokens,
-        CollectionFactory $regionCollectionFactory
+        CollectionFactory $regionCollectionFactory,
+        DirectoryHelper $directoryHelper
     ) {
         $this->shippingMethod = $shippingMethod;
         $this->quoteRepository = $quoteRepository;
@@ -114,6 +122,7 @@ class ShippingMethods implements ShippingMethodsInterface
         $this->json = $json;
         $this->orderTokens = $orderTokens;
         $this->regionCollectionFactory = $regionCollectionFactory;
+        $this->directoryHelper = $directoryHelper;
     }
 
     /**
@@ -204,6 +213,9 @@ class ShippingMethods implements ShippingMethodsInterface
         /** @var Quote $quote */
         $quote = $this->quoteRepository->getActive($cartId);
 
+      
+
+
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
 
@@ -250,12 +262,31 @@ class ShippingMethods implements ShippingMethodsInterface
     }
 
     /**
+    * Allowed Countries Getter.
+    */
+   public function getAllowedCountries()
+   {
+       $countries = [];
+
+       /* @var Country $country */
+       foreach ($this->directoryHelper->getCountryCollection() as $country) {
+           $countries[] = [
+               'value' => $country->getId(),
+               'label' => $country->getName()
+           ];
+       }
+
+       return $countries;
+   }
+
+    /**
      * @param $quote
      * @return array
      */
     public function getShippingRates($quote)
     {
         $quote->collectTotals();
+        $output = [];
 
         $shippingAddress = $quote->getShippingAddress();
 
@@ -263,15 +294,30 @@ class ShippingMethods implements ShippingMethodsInterface
             throw new StateException(__('The shipping address is missing. Set the address and try again.'));
         }
 
-        $shippingAddress->setCollectShippingRates(true);
-        $shippingAddress->collectShippingRates();
-        $shippingAddress->save();
-        $shippingRates = $shippingAddress->getGroupedAllShippingRates();
+        $countriesAllowed = $this->getAllowedCountries();
+        $this->helper->log('debug','countriesAllowed:', [$countriesAllowed]);
+        $isCountryAllowed = false;
 
-        foreach ($shippingRates as $carrierRates) {
-            foreach ($carrierRates as $rate) {
-                $output[] = $this->converter->modelToDataObject($rate, $quote->getQuoteCurrencyCode());
+
+        foreach ($countriesAllowed as $country) {
+            if ($shippingAddress->getCountryId() == $country['value']) {
+                $isCountryAllowed = true;
             }
+        }
+
+        if($isCountryAllowed){
+            $shippingAddress->setCollectShippingRates(true);
+            $shippingAddress->collectShippingRates();
+            $shippingAddress->save();
+            $shippingRates = $shippingAddress->getGroupedAllShippingRates();
+    
+            foreach ($shippingRates as $carrierRates) {
+                foreach ($carrierRates as $rate) {
+                    $output[] = $this->converter->modelToDataObject($rate, $quote->getQuoteCurrencyCode());
+                }
+            }
+    
+            return $output;
         }
 
         return $output;
