@@ -8,7 +8,13 @@ function isDev() {
 function isStaging() {
     var hostname = document.location.hostname;
 
-    return hostname.includes('stg.');
+    if(hostname.includes('stg.')) {
+        return true;
+    } else if(hostname.includes('mcstaging.')) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 if(isDev()) {

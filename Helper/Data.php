@@ -73,7 +73,7 @@ class Data extends AbstractHelper
 
         if(str_contains($domain, 'dev.')) {
             return 'develop';
-        } else if(str_contains($domain, 'stg.')) {
+        } else if(str_contains($domain, 'stg.') || str_contains($domain, 'mcstaging.')) {
             return 'staging';
         } else {
             return 'production';
