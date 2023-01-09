@@ -176,9 +176,8 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         /**
-         * Comercio: Magento
+         * Comercio Dev: MAGENTO
          */
-
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
         if ($env == 'dev') {
@@ -317,7 +316,7 @@ class OrderTokens
 
         /**  IMPROVIDED CODE */
 
-    
+
 
 
 
@@ -342,17 +341,15 @@ class OrderTokens
 
         if($shippingMethod == "bopis_bopis"){
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-        
+
             $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
+
             $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible"); 
             $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible"); 
             $stateStore = $this->replace_null( $stores->getState(),"información no disponible");
             $lat = $this->replace_null( $stores->getLat(),0);
             $long = $this->replace_null( $stores->getLon(),0);
-            $storeImage = $this->replace_null( $stores->getStoreImage(),"información no disponible");
-
-           
-    
+            $storeImage = $this->replace_null( $stores->getStoreImage(),"información no disponible");    
             $this->helper->log('debug', 'nameStore', [$nameStore]);
             $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
             $this->helper->log('debug', 'addressStore', [$addressStore]);
@@ -360,7 +357,6 @@ class OrderTokens
             $this->helper->log('debug', 'lat', [$lat]);
             $this->helper->log('debug', 'long', [$long]);
             $this->helper->log('debug', 'storeImage', [$storeImage]);
-            
             $shippingMethodSelected = "pickup";
         }
 
