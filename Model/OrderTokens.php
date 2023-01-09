@@ -333,19 +333,30 @@ class OrderTokens
         $nameStore = "";
         $zipCodeStore = "";
         $addressStore = "";
+        $stateStore = "";
+        $lat = 0;
+        $long = 0;
+        $storeImage = "";
+
 
         if($shippingMethod == "bopis_bopis"){
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-
             $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
             $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible");
             $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
+            $stateStore = $this->replace_null( $stores->getState(),"información no disponible");
+            $lat = $this->replace_null( $stores->getLat(),0);
+            $long = $this->replace_null( $stores->getLon(),0);
+            $storeImage = $this->replace_null( $stores->getStoreImage(),"información no disponible");
+            $shippingMethodSelected = "pickup";
 
             $this->helper->log('debug', 'nameStore', [$nameStore]);
             $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
             $this->helper->log('debug', 'addressStore', [$addressStore]);
-
-            $shippingMethodSelected = "pickup";
+            $this->helper->log('debug', 'stateStore', [$stateStore]);
+            $this->helper->log('debug', 'lat', [$lat]);
+            $this->helper->log('debug', 'long', [$long]);
+            $this->helper->log('debug', 'storeImage', [$storeImage]);
         }
 
         $totals += $tax_amount;
@@ -368,11 +379,11 @@ class OrderTokens
                         'store_name' => $nameStore,
                         'address' =>  $addressStore,
                         'address_coordinates' => [
-                            'lat' => 0,
-                            'lng' => 0
+                            'lat' => $lat,
+                            'lng' => $long
                         ],	'contact' => [
                             'name' => $nameStore
-                           
+
                         ],
                     ]
                 ],
@@ -633,6 +644,8 @@ class OrderTokens
         if(str_contains($domain, 'dev.')) {
             return 'dev';
         } else if(str_contains($domain, 'stg.')) {
+            return 'stg';
+        } else if(str_contains($domain, 'mcstaging.')) {
             return 'stg';
         } else {
             return 'prod';
