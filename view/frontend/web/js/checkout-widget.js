@@ -18,12 +18,16 @@ function isStaging() {
 }
 
 if(isDev()) {
-    console.log('Environment: Develop');
+    env = 'Develop';
 } else if(isStaging()) {
-    console.log('Environment: Staging');
+    env = 'Staging';
+} else {
+    env = 'Prod';
 }
 
 let deuna_widget_version = 'v1.0.0';
+
+console.log(`Env: ${env} ${deuna_widget_version}`);
 
 let components = [
     'jquery',
