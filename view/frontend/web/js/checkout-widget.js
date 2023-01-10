@@ -21,6 +21,8 @@ if(isDev()) {
     console.log('Environment: Develop');
 } else if(isStaging()) {
     console.log('Environment: Staging');
+} else {
+    console.log('Environment: Prod');
 }
 
 let deuna_widget_version = 'v1.0.0';
