@@ -15,13 +15,6 @@
     "license": "proprietary",
     "keywords": ["checkout", "payment"],
     "homepage": "https://deuna.com",
-    "repositories": {
-        "private-packagist": {
-            "type": "composer",
-            "url": "https://repo.packagist.com/deuna/"
-        },
-        "packagist.org": false
-    },
     "autoload": {
         "files": [
             "registration.php"

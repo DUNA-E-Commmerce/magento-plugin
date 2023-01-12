@@ -71,12 +71,22 @@ class Data extends AbstractHelper
 
         $domain = $storeManager->getStore()->getBaseUrl();
 
-        if(str_contains($domain, 'dev.')) {
-            return 'develop';
-        } else if(str_contains($domain, 'stg.') || str_contains($domain, 'mcstaging.')) {
-            return 'staging';
-        } else {
-            return 'production';
+        switch($domain) {
+            case str_contains($domain, 'dev.'):
+                return 'develop';
+                break;
+            case str_contains($domain, 'local.'):
+                return 'develop';
+                break;
+            case str_contains($domain, 'stg.'):
+                return 'staging';
+                break;
+            case str_contains($domain, 'mcstaging.'):
+                return 'staging';
+                break;
+            default:
+                return 'production';
+                break;
         }
     }
 

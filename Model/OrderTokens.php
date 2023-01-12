@@ -156,10 +156,10 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         switch($env) {
-            case 'dev':
+            case 'develop':
                 return self::URL_DEVELOPMENT;
                 break;
-            case 'stg':
+            case 'staging':
                 return self::URL_STAGING;
                 break;
             default:
@@ -180,9 +180,9 @@ class OrderTokens
          */
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
-        if ($env == 'dev') {
+        if ($env == 'develop') {
             return $devPrivateKey;
-        } else if ($env == 'stg') {
+        } else if ($env == 'staging') {
             $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_STAGING);
         } else {
             $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_PRODUCTION);
@@ -639,16 +639,6 @@ class OrderTokens
     }
 
     public function getEnvironment() {
-        $domain = $this->storeManager->getStore()->getBaseUrl();
-
-        if(str_contains($domain, 'dev.')) {
-            return 'dev';
-        } else if(str_contains($domain, 'stg.')) {
-            return 'stg';
-        } else if(str_contains($domain, 'mcstaging.')) {
-            return 'stg';
-        } else {
-            return 'prod';
-        }
+        return $this->helper->getEnv();
     }
 }
