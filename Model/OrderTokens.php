@@ -20,9 +20,6 @@ use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
-use Entrepids\StoresLocator\Model\StoresFactory;
-
-
 
 class OrderTokens
 {
@@ -33,9 +30,6 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
-
-    /** @var Entrepids\StoresLocator\Model\StoresFactory */
-    private $_stores;
 
     /**
      * @var Session
@@ -125,7 +119,6 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
-        StoresFactory $stores
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -145,7 +138,6 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
-        $this->_stores = $stores;
     }
 
     /**
@@ -156,10 +148,10 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         switch($env) {
-            case 'dev':
+            case 'develop':
                 return self::URL_DEVELOPMENT;
                 break;
-            case 'stg':
+            case 'staging':
                 return self::URL_STAGING;
                 break;
             default:
@@ -180,9 +172,9 @@ class OrderTokens
          */
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
-        if ($env == 'dev') {
+        if ($env == 'develop') {
             return $devPrivateKey;
-        } else if ($env == 'stg') {
+        } else if ($env == 'staging') {
             $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_STAGING);
         } else {
             $privateKey = $this->helper->getGeneralConfig(self::PRIVATE_KEY_PRODUCTION);
@@ -599,7 +591,6 @@ class OrderTokens
         $stores = $storeManager->getStores(true, false);
         $this->helper->log('debug','storeManager:', [ $stores ]);
         foreach($stores as $store){
-
             $storeName = $store->getName();
             $this->helper->log('debug','storeName:', [ $storeName ]);
             $this->helper->log('debug','storeID:', [ $store->getId() ]);
@@ -607,14 +598,8 @@ class OrderTokens
         $billingAddress = $quote->getBillingAddress();
 
         $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
-        /** IMPROVISED CODE */
-
-
-
         $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
         $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
-
-
 
         $body = $this->json->serialize($this->getBody($quote));
 
@@ -639,16 +624,6 @@ class OrderTokens
     }
 
     public function getEnvironment() {
-        $domain = $this->storeManager->getStore()->getBaseUrl();
-
-        if(str_contains($domain, 'dev.')) {
-            return 'dev';
-        } else if(str_contains($domain, 'stg.')) {
-            return 'stg';
-        } else if(str_contains($domain, 'mcstaging.')) {
-            return 'stg';
-        } else {
-            return 'prod';
-        }
+        return $this->helper->getEnv();
     }
 }

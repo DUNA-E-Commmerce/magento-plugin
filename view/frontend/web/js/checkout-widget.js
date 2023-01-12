@@ -2,7 +2,7 @@
 function isDev() {
     var hostname = document.location.hostname;
 
-    return hostname.includes('dev.');
+    return hostname.includes('dev.') || hostname.includes('local.');
 }
 
 function isStaging() {
