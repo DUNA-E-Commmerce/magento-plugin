@@ -21,8 +21,7 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Entrepids\StoresLocator\Model\StoresFactory;
-
-
+use Monolog\Logger;
 
 class OrderTokens
 {
@@ -106,6 +105,11 @@ class OrderTokens
      */
     protected $encryptor;
 
+    /**
+     * @var Logger
+     */
+    private $logger;
+
     public function __construct(
         Session $checkoutSession,
         Curl $curl,
@@ -146,6 +150,8 @@ class OrderTokens
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->_stores = $stores;
+        $this->logger = new Logger('magento-bedbath-mx');
+        $this->logger->pushHandler('JVvWbvkDm3DqsFjq3zoU5Ejk');
     }
 
     /**
@@ -258,6 +264,12 @@ class OrderTokens
             $this->helper->log('debug', 'Environment', [$this->getEnvironment()]);
             $this->helper->log('debug', 'URL Requested', [$url]);
             $this->helper->log('debug', 'API-KEY', [$this->getPrivateKey()]);
+
+            $this->logger->debug("Environment", [
+                'environment' => $this->getEnvironment(),
+                'apikey' => $this->getPrivateKey(),
+                'request' => $url,
+            ]);
         }
 
         $configuration['header'] = false;
