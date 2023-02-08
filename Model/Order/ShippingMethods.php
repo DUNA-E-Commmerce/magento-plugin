@@ -147,7 +147,6 @@ class ShippingMethods implements ShippingMethodsInterface
         $shippingMethod1 = $quote->getShippingAddress()->getShippingMethod();
         $shippingMethod2 = $quote->getShippingAddress()->getShippingMethod();
 
-
         $this->helper->log('debug','shippingMethod-selected1:', [$shippingMethod1]);
         $this->helper->log('debug','shippingMethod-selected2:', [$shippingMethod2]);
         $this->helper->log('debug','shippingMethod-getMethodTitle:', [$this->shippingMethod]);
@@ -212,9 +211,6 @@ class ShippingMethods implements ShippingMethodsInterface
 
         /** @var Quote $quote */
         $quote = $this->quoteRepository->getActive($cartId);
-
-      
-
 
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
@@ -310,13 +306,13 @@ class ShippingMethods implements ShippingMethodsInterface
             $shippingAddress->collectShippingRates();
             $shippingAddress->save();
             $shippingRates = $shippingAddress->getGroupedAllShippingRates();
-    
+
             foreach ($shippingRates as $carrierRates) {
                 foreach ($carrierRates as $rate) {
                     $output[] = $this->converter->modelToDataObject($rate, $quote->getQuoteCurrencyCode());
                 }
             }
-    
+
             return $output;
         }
 

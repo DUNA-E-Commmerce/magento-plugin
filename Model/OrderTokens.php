@@ -303,60 +303,30 @@ class OrderTokens
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
 
-
         $discounts = $this->getDiscounts($quote);
 
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
 
-
-
-
-        //$shippingMethods = $this->shippingMethodManager->getList($quote->getId());
-        //$result =  $this->shippingMethodManagement->getList($quote->getId());
-
         /**  IMPROVIDED CODE */
-
-
-
-
-
-        $getShippingAmount  = $quote->getShippingAddress()->getShippingAmount();
         $shippingAddress = $quote->getShippingAddress();
         $shippingMethod =  $shippingAddress->getShippingMethod();
-        $addressId =$quote->getShippingAddress()->getAddressId() ;
-        $getAddreessData = $this->getAddressData($addressId);
-
-        $this->helper->log('debug', 'shippingMethod', [$shippingMethod]);
-        $this->helper->log('debug', 'shippingMethod->data()', [$quote->getShippingAddress()->getData()]);
 
         $shippingMethodSelected = "delivery";
         $nameStore = "";
-        $zipCodeStore = "";
         $addressStore = "";
-        $stateStore = "";
         $lat = 0;
         $long = 0;
-        $storeImage = "";
 
-
-        if($shippingMethod == "bopis_bopis"){
+        /**
+         * Used when pickup option is selected in BB&B
+         */
+        if($shippingMethod == "bopis_bopis") {
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
             $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
-            $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible");
             $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
-            $stateStore = $this->replace_null( $stores->getState(),"información no disponible");
             $lat = $this->replace_null( $stores->getLat(),0);
             $long = $this->replace_null( $stores->getLon(),0);
-            $storeImage = $this->replace_null( $stores->getStoreImage(),"información no disponible");
             $shippingMethodSelected = "pickup";
-
-            $this->helper->log('debug', 'nameStore', [$nameStore]);
-            $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
-            $this->helper->log('debug', 'addressStore', [$addressStore]);
-            $this->helper->log('debug', 'stateStore', [$stateStore]);
-            $this->helper->log('debug', 'lat', [$lat]);
-            $this->helper->log('debug', 'long', [$long]);
-            $this->helper->log('debug', 'storeImage', [$storeImage]);
         }
 
         $totals += $tax_amount;
@@ -381,9 +351,9 @@ class OrderTokens
                         'address_coordinates' => [
                             'lat' => $lat,
                             'lng' => $long
-                        ],	'contact' => [
+                        ],
+                        'contact' => [
                             'name' => $nameStore
-
                         ],
                     ]
                 ],
@@ -398,7 +368,7 @@ class OrderTokens
             ]
         ];
 
-        return $this->getShippingData($body, $quote);
+        return $this->getShippingData($body, $quote, $stores);
     }
 
     /**
@@ -510,34 +480,61 @@ class OrderTokens
      * @param $shippingAmount
      * @return array
      */
-    private function getShippingData($order, $quote)
+    private function getShippingData($order, $quote, $storeObj)
     {
-        $shippingAddress = $quote->getShippingAddress();
-        $shippingAmount = $this->priceFormat($shippingAddress->getShippingAmount());
-        $order['order']['shipping_address'] = [
-            'id' => 0,
-            'user_id' => (string) 0,
-            'first_name' => 'test',
-            'last_name' => 'test',
-            'phone' => '8677413045',
-            'identity_document' => '',
-            'lat' => 0,
-            'lng' => 0,
-            'address_1' => 'test',
-            'address_2' => 'test',
-            'city' => 'test',
-            'zipcode' => 'test',
-            'state_name' => 'test',
-            'country_code' => 'CL',
-            'additional_description' => '',
-            'address_type' => '',
-            'is_default' => false,
-            'created_at' => '',
-            'updated_at' => '',
-        ];
-        $order['order']['status'] = 'pending';
-        $order['order']['shipping_amount'] = $shippingAmount;
-        $order['order']['total_amount'] += $shippingAmount;
+        $shippingOptions = $order['order']['shipping_options'];
+
+        if($shippingOptions['type'] === 'pickup') {
+            $order['order']['shipping_address'] = [
+                'id' => 0,
+                'user_id' => (string) 0,
+                'first_name' => $storeObj->getName(),
+                'last_name' => '',
+                'phone' => $storeObj->getPhone(),
+                'identity_document' => '',
+                'lat' => 0,
+                'lng' => 0,
+                'address_1' => $storeObj->getStreet().', '.$storeObj->getNumber(),
+                'address_2' => $storeObj->getColony(),
+                'city' => $storeObj->getTown(),
+                'zipcode' => $storeObj->getZipCode(),
+                'state_name' => $storeObj->getState(),
+                'country_code' => $storeObj->getCountry(),
+                'additional_description' => 'Recoger en tienda',
+                'address_type' => 'work',
+                'is_default' => false,
+                'created_at' => '',
+                'updated_at' => '',
+            ];
+        } else {
+            $shippingAddress = $quote->getShippingAddress();
+            $shippingAmount = $this->priceFormat($shippingAddress->getShippingAmount());
+            $order['order']['shipping_address'] = [
+                'id' => 0,
+                'user_id' => (string) 0,
+                'first_name' => 'test',
+                'last_name' => 'test',
+                'phone' => '8677413045',
+                'identity_document' => '',
+                'lat' => 0,
+                'lng' => 0,
+                'address_1' => 'test',
+                'address_2' => 'test',
+                'city' => 'test',
+                'zipcode' => 'test',
+                'state_name' => 'test',
+                'country_code' => 'MX',
+                'additional_description' => '',
+                'address_type' => '',
+                'is_default' => false,
+                'created_at' => '',
+                'updated_at' => '',
+            ];
+            $order['order']['status'] = 'pending';
+            $order['order']['shipping_amount'] = $shippingAmount;
+            $order['order']['total_amount'] += $shippingAmount;
+        }
+
         return $order;
     }
 
@@ -608,13 +605,8 @@ class OrderTokens
 
         $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
         /** IMPROVISED CODE */
-
-
-
         $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
         $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
-
-
 
         $body = $this->json->serialize($this->getBody($quote));
 
