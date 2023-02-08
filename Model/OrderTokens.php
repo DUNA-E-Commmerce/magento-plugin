@@ -151,7 +151,7 @@ class OrderTokens
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->_stores = $stores;
         $this->logger = new Logger('magento-bedbath-mx');
-        $this->logger->pushHandler('JVvWbvkDm3DqsFjq3zoU5Ejk');
+        $this->logger->pushHandler('DB8ad3bQCZPAshmAEkj9hVLM');
     }
 
     /**
