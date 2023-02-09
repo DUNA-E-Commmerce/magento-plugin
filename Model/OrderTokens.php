@@ -20,6 +20,7 @@ use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
+use Monolog\Logger;
 
 class OrderTokens
 {
@@ -30,6 +31,8 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
+    const LOGTAIL_KEY = 'DB8ad3bQCZPAshmAEkj9hVLM';
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
 
     /**
      * @var Session
@@ -100,6 +103,11 @@ class OrderTokens
      */
     protected $encryptor;
 
+    /**
+     * @var Logger
+     */
+    private $logger;
+
     public function __construct(
         Session $checkoutSession,
         Curl $curl,
@@ -138,6 +146,8 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(self::LOGTAIL_KEY);
     }
 
     /**
@@ -616,6 +626,8 @@ class OrderTokens
      */
     public function getToken(): array
     {
+        $this->logger->info('Starting tokenization');
+
         $token = $this->tokenize();
 
         $this->helper->log('debug', 'Token:', [$token]);
