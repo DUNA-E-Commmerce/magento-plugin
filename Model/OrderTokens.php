@@ -22,6 +22,7 @@ use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Entrepids\StoresLocator\Model\StoresFactory;
 use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 class OrderTokens
 {
@@ -32,6 +33,8 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
 
     /** @var Entrepids\StoresLocator\Model\StoresFactory */
     private $_stores;
@@ -150,8 +153,8 @@ class OrderTokens
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->_stores = $stores;
-        $this->logger = new Logger('magento-bedbath-mx');
-        $this->logger->pushHandler('DB8ad3bQCZPAshmAEkj9hVLM');
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler($this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
