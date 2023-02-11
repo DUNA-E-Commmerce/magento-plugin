@@ -154,7 +154,7 @@ class OrderTokens
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler($this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        $this->logger->pushHandler($this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN)));
     }
 
     /**
