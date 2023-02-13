@@ -10,6 +10,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Zend_Http_Client;
 use Magento\Framework\Serialize\Serializer\Json;
 use DUna\Payments\Helper\Data;
+use Exception;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Catalog\Model\Category;
@@ -22,6 +23,7 @@ use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 class OrderTokens
 {
@@ -32,7 +34,7 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
-    const LOGTAIL_KEY = 'DB8ad3bQCZPAshmAEkj9hVLM';
+    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
     const LOGTAIL_SOURCE = 'deuna-magento-checkout';
 
     /**
@@ -148,7 +150,7 @@ class OrderTokens
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_KEY));
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
@@ -599,8 +601,10 @@ class OrderTokens
         /** IMPROVISED CODE */
         $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
         $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
-        $stores = $storeManager->getStores(true, false);
-        $this->helper->log('debug','storeManager:', [ $stores ]);
+        $store = $storeManager->getStores(true, false);
+
+        $this->logger->debug('Store Manager:', $stores);
+
         foreach($stores as $store){
             $storeName = $store->getName();
             $this->helper->log('debug','storeName:', [ $storeName ]);
@@ -629,7 +633,17 @@ class OrderTokens
     {
         $this->logger->info('Starting tokenization');
 
-        $token = $this->tokenize();
+        try {
+            $token = $this->tokenize();
+        } catch(NoSuchEntityException $e) {
+            $this->logger->error('Critical error in '.__FUNCTION__, $e);
+
+            return false;
+        } catch(Exception $e) {
+            $this->logger->error('Critical error in '.__FUNCTION__, $e);
+
+            return false;
+        }
 
         $this->helper->log('debug', 'Token:', [$token]);
 
