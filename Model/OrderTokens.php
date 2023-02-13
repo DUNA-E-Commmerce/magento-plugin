@@ -10,6 +10,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Zend_Http_Client;
 use Magento\Framework\Serialize\Serializer\Json;
 use DUna\Payments\Helper\Data;
+use Exception;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Catalog\Model\Category;
@@ -23,6 +24,7 @@ use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Entrepids\StoresLocator\Model\StoresFactory;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 class OrderTokens
 {
@@ -645,7 +647,19 @@ class OrderTokens
     {
         $this->logger->info('Starting tokenization');
 
-        $token = $this->tokenize();
+        try {
+            $token = $this->tokenize();
+        } catch(NoSuchEntityException $e) {
+            $this->logger->error('Critical error in '.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+            ]);
+        } catch(Exception $e) {
+            $this->logger->error('Critical error in '.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+            ]);
+        }
 
         $this->helper->log('debug', 'Token:', [$token]);
 
