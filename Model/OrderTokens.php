@@ -337,6 +337,8 @@ class OrderTokens
          * Used when pickup option is selected in BB&B
          */
         if($shippingMethod == "bopis_bopis") {
+            $this->logger->info('BB&B / Pickup was selected');
+
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
             $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
             $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
@@ -630,6 +632,8 @@ class OrderTokens
 
         $this->helper->log('debug', 'Json to Tokenize:', [$body]);
 
+        // $this->logger->info('JSON Token', $body);
+
         return $this->request($body);
     }
 
@@ -639,6 +643,8 @@ class OrderTokens
      */
     public function getToken(): array
     {
+        $this->logger->info('Starting tokenization');
+
         $token = $this->tokenize();
 
         $this->helper->log('debug', 'Token:', [$token]);
