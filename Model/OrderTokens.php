@@ -317,6 +317,7 @@ class OrderTokens
     {
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
+        $stores = [];
 
         $discounts = $this->getDiscounts($quote);
 
