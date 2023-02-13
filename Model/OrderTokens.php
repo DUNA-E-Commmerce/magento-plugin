@@ -601,7 +601,7 @@ class OrderTokens
         /** IMPROVISED CODE */
         $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
         $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
-        $store = $storeManager->getStores(true, false);
+        $stores = $storeManager->getStores(true, false);
 
         $this->logger->debug('Store Manager:', $stores);
 
