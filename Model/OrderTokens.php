@@ -24,7 +24,6 @@ use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Vault\Helpers\ArrayHelper;
 
 class OrderTokens
 {
@@ -637,13 +636,15 @@ class OrderTokens
         try {
             $token = $this->tokenize();
         } catch(NoSuchEntityException $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, ArrayHelper::toArray($e, true));
-
-            return false;
+            $this->logger->error('Critical error in '.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+            ]);
         } catch(Exception $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, ArrayHelper::toArray($e, true));
-
-            return false;
+            $this->logger->error('Critical error in '.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+            ]);
         }
 
         $this->helper->log('debug', 'Token:', [$token]);
