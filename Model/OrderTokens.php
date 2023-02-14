@@ -629,27 +629,31 @@ class OrderTokens
      * @return string
      * @throws LocalizedException
      */
-    public function getToken(): array
+    public function getToken()
     {
         $this->logger->info('Starting tokenization');
 
         try {
             $token = $this->tokenize();
+
+            $this->helper->log('debug', 'Token:', [$token]);
+
+            return $token;
         } catch(NoSuchEntityException $e) {
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
             ]);
+
+            return false;
         } catch(Exception $e) {
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
             ]);
+
+            return false;
         }
-
-        $this->helper->log('debug', 'Token:', [$token]);
-
-        return $token;
     }
 
     public function getEnvironment() {
