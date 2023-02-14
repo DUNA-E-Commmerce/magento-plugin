@@ -257,9 +257,6 @@ class OrderTokens
      */
     private function request($body)
     {
-        //log
-       // $this->helper->log('debug', 'request body', [$body]);
-
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
@@ -274,12 +271,13 @@ class OrderTokens
                 'environment' => $this->getEnvironment(),
                 'apikey' => $this->getPrivateKey(),
                 'request' => $url,
+                'body' => $body,
             ]);
         }
 
         $configuration['header'] = false;
-        $this->curl->setConfig($configuration);
 
+        $this->curl->setConfig($configuration);
         $this->curl->write($method, $url, $http_ver, $headers, $body);
 
         $response = $this->curl->read();
@@ -289,6 +287,12 @@ class OrderTokens
         }
 
         $response = $this->json->unserialize($response);
+
+        if($this->getEnvironment()!=='prod') {
+            $this->logger->debug("Request response", [
+                'response' => $response,
+            ]);
+        }
 
         if(!empty($response['error'])) {
             $error = $response['error'];
