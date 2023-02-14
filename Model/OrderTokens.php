@@ -325,7 +325,9 @@ class OrderTokens
 
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
 
-        /**  IMPROVIDED CODE */
+        /**
+         * Initial Data for Delivery Methods
+         */
         $shippingAddress = $quote->getShippingAddress();
         $shippingMethod =  $shippingAddress->getShippingMethod();
 
@@ -346,6 +348,7 @@ class OrderTokens
             $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
             $lat = $this->replace_null( $stores->getLat(),0);
             $long = $this->replace_null( $stores->getLon(),0);
+
             $shippingMethodSelected = "pickup";
         }
 
@@ -610,31 +613,9 @@ class OrderTokens
     {
         $quote = $this->checkoutSession->getQuote();
 
-        /** IMPROVISED CODE */
-        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
-        $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
-        $stores = $storeManager->getStores(true, false);
-        $this->helper->log('debug','storeManager:', [ $stores ]);
-        foreach($stores as $store){
-
-            $storeName = $store->getName();
-            $this->helper->log('debug','storeName:', [ $storeName ]);
-            $this->helper->log('debug','storeID:', [ $store->getId() ]);
-        }
-        $billingAddress = $quote->getBillingAddress();
-
-        $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
-        /** IMPROVISED CODE */
-        $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
-        $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
-
         $body = $this->json->serialize($this->getBody($quote));
 
         $body = json_encode($this->getBody($quote));
-
-        $this->helper->log('debug', 'Json to Tokenize:', [$body]);
-
-        // $this->logger->info('JSON Token', $body);
 
         return $this->request($body);
     }
@@ -650,13 +631,17 @@ class OrderTokens
 
             $token = $this->tokenize();
 
-            $this->helper->log('debug', 'Token:', [$token]);
+            $this->logger->info("Token Generated ({$token['token']})", [
+                'token' => $token,
+            ]);
 
             return $token;
         } catch(NoSuchEntityException $e) {
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return false;
@@ -664,6 +649,8 @@ class OrderTokens
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return false;
