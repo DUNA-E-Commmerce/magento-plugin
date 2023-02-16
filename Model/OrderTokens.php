@@ -363,6 +363,7 @@ class OrderTokens
                 'order_id' => $quote->getId(),
                 'currency' => $quote->getCurrency()->getQuoteCurrencyCode(),
                 'tax_amount' => $this->priceFormat($tax_amount),
+                'total_tax_amount' => $this->priceFormat($tax_amount),
                 'items_total_amount' => $this->priceFormat($totals),
                 'sub_total' => $this->priceFormat($quote->getSubtotal()),
                 'total_amount' => $this->priceFormat($totals),
