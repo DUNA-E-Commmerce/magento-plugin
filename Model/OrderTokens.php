@@ -260,12 +260,15 @@ class OrderTokens
         $headers = $this->getHeaders();
 
         if($this->getEnvironment()!=='prod') {
-            $this->helper->log('debug', 'Environment', [$this->getEnvironment()]);
-            $this->helper->log('debug', 'URL Requested', [$url]);
-            $this->helper->log('debug', 'API-KEY', [$this->getPrivateKey()]);
+            $this->logger->debug('Request debugger', [
+                'url' => $url,
+                'env' => $this->getEnvironment(),
+                'api-key' => $this->getPrivateKey(),
+            ]);
         }
 
         $configuration['header'] = false;
+
         $this->curl->setConfig($configuration);
 
         $this->curl->write($method, $url, $http_ver, $headers, $body);
@@ -273,15 +276,24 @@ class OrderTokens
         $response = $this->curl->read();
 
         if (!$response) {
-            throw new LocalizedException(__('No response from request to ' . $url));
+            $msg = 'No response from request to ' . $url;
+
+            $this->logger->notice($msg, [
+                'response' => $response,
+            ]);
+
+            throw new LocalizedException(__($msg));
         }
 
         $response = $this->json->unserialize($response);
 
         if(!empty($response['error'])) {
             $error = $response['error'];
+            $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
 
-            $this->helper->log('debug', 'Error on DEUNA Token', [$error]);
+            $this->logger->error($msg, [
+                'response' => $response,
+            ]);
 
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
         }
@@ -290,14 +302,7 @@ class OrderTokens
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
 
-        $this->helper->log('debug','Token Response', [$response]);
-
         return $response;
-    }
-
-    private function replace_null($value, $replace) {
-        if (is_null($value)) return $replace;
-        return $value;
     }
 
     /**
@@ -308,61 +313,15 @@ class OrderTokens
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
 
-
         $discounts = $this->getDiscounts($quote);
 
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
 
-
-
-
-        //$shippingMethods = $this->shippingMethodManager->getList($quote->getId());
-        //$result =  $this->shippingMethodManagement->getList($quote->getId());
-
-        /**  IMPROVIDED CODE */
-
-
-
-
-
-        $getShippingAmount  = $quote->getShippingAddress()->getShippingAmount();
-        $shippingAddress = $quote->getShippingAddress();
-        $shippingMethod =  $shippingAddress->getShippingMethod();
-        $addressId =$quote->getShippingAddress()->getAddressId() ;
-        $getAddreessData = $this->getAddressData($addressId);
-
-        $this->helper->log('debug', 'shippingMethod', [$shippingMethod]);
-        $this->helper->log('debug', 'shippingMethod->data()', [$quote->getShippingAddress()->getData()]);
-
         $shippingMethodSelected = "delivery";
         $nameStore = "";
-        $zipCodeStore = "";
         $addressStore = "";
-        $stateStore = "";
         $lat = 0;
         $long = 0;
-        $storeImage = "";
-
-
-        if($shippingMethod == "bopis_bopis"){
-            $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-            $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
-            $zipCodeStore = $this->replace_null( $stores->getZipCode(),"información no disponible");
-            $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
-            $stateStore = $this->replace_null( $stores->getState(),"información no disponible");
-            $lat = $this->replace_null( $stores->getLat(),0);
-            $long = $this->replace_null( $stores->getLon(),0);
-            $storeImage = $this->replace_null( $stores->getStoreImage(),"información no disponible");
-            $shippingMethodSelected = "pickup";
-
-            $this->helper->log('debug', 'nameStore', [$nameStore]);
-            $this->helper->log('debug', 'zipCodeStore', [$zipCodeStore]);
-            $this->helper->log('debug', 'addressStore', [$addressStore]);
-            $this->helper->log('debug', 'stateStore', [$stateStore]);
-            $this->helper->log('debug', 'lat', [$lat]);
-            $this->helper->log('debug', 'long', [$long]);
-            $this->helper->log('debug', 'storeImage', [$storeImage]);
-        }
 
         $totals += $tax_amount;
 
@@ -636,13 +595,18 @@ class OrderTokens
         try {
             $token = $this->tokenize();
 
-            $this->helper->log('debug', 'Token:', [$token]);
+            if($this->getEnvironment()!=='prod') {
+                $this->logger->debug("Token generated ({$token['token']})", [
+                    'token' => $token,
+                ]);
+            }
 
             return $token;
         } catch(NoSuchEntityException $e) {
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
             ]);
 
             return false;
@@ -650,6 +614,7 @@ class OrderTokens
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
             ]);
 
             return false;
