@@ -356,6 +356,8 @@ class OrderTokens
             $shippingMethodSelected = "pickup";
         }
 
+        $discount_amount = $this->getDiscountAmount($quote);
+        $subtotal_amount = $quote->getSubtotal();
         $totals += $tax_amount;
 
         $body = [
@@ -365,9 +367,9 @@ class OrderTokens
                 'tax_amount' => $this->priceFormat($tax_amount),
                 'total_tax_amount' => $this->priceFormat($tax_amount),
                 'items_total_amount' => $this->priceFormat($totals),
-                'sub_total' => $this->priceFormat($quote->getSubtotal()),
-                'total_amount' => $this->priceFormat($totals),
-                'total_discount' => $this->getDiscountAmount($quote),
+                'sub_total' => $this->priceFormat($subtotal_amount)-$discount_amount,
+                'total_amount' => $this->priceFormat($totals)-$discount_amount,
+                'total_discount' => $discount_amount,
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
@@ -646,8 +648,7 @@ class OrderTokens
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
             ]);
 
             return false;
@@ -655,8 +656,7 @@ class OrderTokens
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
             ]);
 
             return false;
