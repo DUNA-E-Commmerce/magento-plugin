@@ -157,6 +157,8 @@ class OrderTokens
         $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+
+        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -348,16 +350,17 @@ class OrderTokens
             $this->logger->info('BB&B / Pickup was selected');
 
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-            $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
-            $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
-            $lat = $this->replace_null( $stores->getLat(),0);
-            $long = $this->replace_null( $stores->getLon(),0);
+            $nameStore =  $this->replace_null($stores->getName(),"información no disponible");
+            $addressStore = $this->replace_null($stores->getStreet()." ".$stores->getNumber(),"información no disponible");
+            $lat = $this->replace_null($stores->getLat(),0);
+            $long = $this->replace_null($stores->getLon(),0);
 
             $shippingMethodSelected = "pickup";
         }
 
         $discount_amount = $this->getDiscountAmount($quote);
         $subtotal_amount = $quote->getSubtotal();
+        $subtotal_amount -= $discount_amount;
         $totals += $tax_amount;
 
         $body = [
@@ -367,8 +370,8 @@ class OrderTokens
                 'tax_amount' => $this->priceFormat($tax_amount),
                 'total_tax_amount' => $this->priceFormat($tax_amount),
                 'items_total_amount' => $this->priceFormat($totals),
-                'sub_total' => $this->priceFormat($subtotal_amount)-$discount_amount,
-                'total_amount' => $this->priceFormat($totals)-$discount_amount,
+                'sub_total' => $this->priceFormat($subtotal_amount),
+                'total_amount' => $this->priceFormat($totals),
                 'total_discount' => $discount_amount,
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
@@ -518,12 +521,10 @@ class OrderTokens
             $order['order']['shipping_address'] = [
                 'id' => 0,
                 'user_id' => (string) 0,
-                'first_name' => $storeObj->getName(),
-                'last_name' => '',
+                'first_name' => 'N/A',
+                'last_name' => 'N/A',
                 'phone' => $storeObj->getPhone(),
-                'identity_document' => '',
-                'lat' => 0,
-                'lng' => 0,
+                'identity_document' => '-',
                 'address_1' => $storeObj->getStreet().', '.$storeObj->getNumber(),
                 'address_2' => $storeObj->getColony(),
                 'city' => $storeObj->getTown(),
@@ -531,10 +532,10 @@ class OrderTokens
                 'state_name' => $storeObj->getState(),
                 'country_code' => $storeObj->getCountry(),
                 'additional_description' => 'Recoger en tienda',
-                'address_type' => 'work',
-                'is_default' => false,
-                'created_at' => '',
-                'updated_at' => '',
+                'address_type' => 'home',
+                'is_default' => true,
+                'lat' => $storeObj->getLat(),
+                'lng' => $storeObj->getLon(),
             ];
         } else {
             $shippingAddress = $quote->getShippingAddress();
@@ -542,17 +543,17 @@ class OrderTokens
             $order['order']['shipping_address'] = [
                 'id' => 0,
                 'user_id' => (string) 0,
-                'first_name' => 'test',
-                'last_name' => 'test',
-                'phone' => '8677413045',
+                'first_name' => '-',
+                'last_name' => '-',
+                'phone' => '-',
                 'identity_document' => '',
                 'lat' => 0,
                 'lng' => 0,
-                'address_1' => 'test',
-                'address_2' => 'test',
-                'city' => 'test',
-                'zipcode' => 'test',
-                'state_name' => 'test',
+                'address_1' => '-',
+                'address_2' => '-',
+                'city' => '-',
+                'zipcode' => '-',
+                'state_name' => '-',
                 'country_code' => 'MX',
                 'additional_description' => '',
                 'address_type' => '',

@@ -2,7 +2,6 @@
 namespace DUna\Payments\Model;
 
 use Magento\Framework\Webapi\Rest\Request;
-use Psr\Log\LoggerInterface;
 use DUna\Payments\Model\OrderTokens;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Quote\Model\QuoteFactory;
@@ -10,13 +9,19 @@ use Magento\Quote\Model\QuoteFactory as Quote;
 use Magento\Quote\Api\CartRepositoryInterface as CRI;
 use DUna\Payments\Helper\Data;
 use DUna\Payments\Model\Order\ShippingMethods;
+use Exception;
 use Magento\Customer\Model\CustomerFactory;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Framework\App\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 class PostManagement {
+
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
 
     /**
      * @var Request
@@ -24,7 +29,7 @@ class PostManagement {
     protected $request;
 
     /**
-     * @var LoggerInterface
+     * @var Logger
      */
     protected $logger;
 
@@ -63,7 +68,6 @@ class PostManagement {
 
     public function __construct(
         Request $request,
-        LoggerInterface $logger,
         QuoteManagement $quoteManagement,
         QuoteFactory $quoteFactory,
         OrderTokens $orderTokens,
@@ -77,7 +81,6 @@ class PostManagement {
         ShippingMethods $deunaShipping
     ) {
         $this->request = $request;
-        $this->logger = $logger;
         $this->quoteManagement = $quoteManagement;
         $this->quoteFactory = $quoteFactory;
         $this->orderTokens = $orderTokens;
@@ -89,6 +92,10 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+
+        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -96,68 +103,86 @@ class PostManagement {
      */
     public function notify()
     {
-        $bodyReq = $this->request->getBodyParams();
-        $output = [];
+        try {
+            $bodyReq = $this->request->getBodyParams();
+            $output = [];
 
-        $this->helper->log('debug', 'Notify New Order:', $bodyReq);
+            $this->helper->log('debug', 'Notify New Order:', $bodyReq);
 
-        $order = $bodyReq['order'];
-        $orderId = $order['order_id'];
-        $payment_status = $order['payment_status'];
-        $email = $order['shipping_address']['email'];
-        $token = $order['token'];
-        $paymentProcessor = $order['payment']['data']['processor'];
-        $metadata = $order['payment']['data']['metadata'];
-        $paymentMethod = $order['payment_method'];
-        $userComment = $order['user_instructions'];
-        $shippingAmount = $order['shipping_amount']/100;
-        $totalAmount = $order['total_amount']/100;
-        $authCode = isset($metadata['authorization_code']) ? $metadata['authorization_code'] : 'N/A';
+            $order = $bodyReq['order'];
+            $orderId = $order['order_id'];
+            $payment_status = $order['payment_status'];
+            $email = $order['shipping_address']['email'];
+            $token = $order['token'];
+            $paymentProcessor = $order['payment']['data']['processor'];
+            $metadata = $order['payment']['data']['metadata'];
+            $paymentMethod = $order['payment_method'];
+            $userComment = $order['user_instructions'];
+            $shippingAmount = $order['shipping_amount']/100;
+            $totalAmount = $order['total_amount']/100;
+            $authCode = isset($metadata['authorization_code']) ? $metadata['authorization_code'] : 'N/A';
 
-        $quote = $this->quotePrepare($order, $email);
+            $quote = $this->quotePrepare($order, $email);
 
-        $active = $quote->getIsActive();
+            $active = $quote->getIsActive();
 
-        $output = [
-            'active' => boolval($active),
-            'orderId' => $orderId,
-            'token' => $token
-        ];
+            $output = [
+                'active' => boolval($active),
+                'orderId' => $orderId,
+                'token' => $token
+            ];
 
-        if ($active) {
-            $order = $this->quoteManagement->submit($quote);
+            if ($active) {
+                $order = $this->quoteManagement->submit($quote);
 
-            if(!empty($userComment)) {
+                if(!empty($userComment)) {
+                    $order->addStatusHistoryComment(
+                        "Comentario de cliente<br>
+                        <i>{$userComment}</i>"
+                    )->setIsVisibleOnFront(true);
+                }
+
+                $order->setShippingAmount($shippingAmount);
+                $order->setBaseShippingAmount($shippingAmount);
+                $order->setGrandTotal($totalAmount);
+                $order->setBaseGrandTotal($totalAmount);
+
+                $this->updatePaymentState($order, $payment_status, $totalAmount);
+
                 $order->addStatusHistoryComment(
-                    "Comentario de cliente<br>
-                    <i>{$userComment}</i>"
-                )->setIsVisibleOnFront(true);
+                    "Payment Processed by <strong>DEUNA Checkout</strong><br>
+                    <strong>Token:</strong> {$token}<br>
+                    <strong>OrderID:</strong> {$orderId}<br>
+                    <strong>Auth Code:</strong> {$authCode}<br>
+                    <strong>Payment Method:</strong> {$paymentMethod}<br>
+                    <strong>Processor:</strong> {$paymentProcessor}"
+                );
+
+                $order->save();
+
+                $output['status'] = 'saved';
+
+                $this->logger->info("Pedido ({$orderId}) notificado satisfactoriamente", [
+                    'data' => $output,
+                ]);
+            } else {
+                $output['status'] = 'failed';
+
+                $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
+                    'data' => $output,
+                ]);
             }
 
-            $order->setShippingAmount($shippingAmount);
-            $order->setBaseShippingAmount($shippingAmount);
-            $order->setGrandTotal($totalAmount);
-            $order->setBaseGrandTotal($totalAmount);
+            return json_encode($output);
+        } catch(Exception $e) {
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ]);
 
-            $this->updatePaymentState($order, $payment_status, $totalAmount);
-
-            $order->addStatusHistoryComment(
-                "Payment Processed by <strong>DEUNA Checkout</strong><br>
-                <strong>Token:</strong> {$token}<br>
-                <strong>OrderID:</strong> {$orderId}<br>
-                <strong>Auth Code:</strong> {$authCode}<br>
-                <strong>Payment Method:</strong> {$paymentMethod}<br>
-                <strong>Processor:</strong> {$paymentProcessor}"
-            );
-
-            $order->save();
-
-            $output['status'] = 'saved';
-        } else {
-            $output['status'] = 'failed';
+            return false;
         }
-
-        return json_encode($output);
     }
 
     /**
@@ -236,6 +261,8 @@ class PostManagement {
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
                   ->setTotalPaid($totalAmount)
                   ->setPaymentMethod('checkmo');
+
+            $this->logger->info("Order ({$order->id}) change status to PROCESSING");
         }
     }
 
@@ -275,14 +302,4 @@ class PostManagement {
 
         $quote->getBillingAddress()->addData($billing_address);
     }
-
-    // public function updateOrderCustomer($orderId)
-    // {
-    //     $order = $this->orderRepository->get($orderId);
-
-    //     $order->setCustomerId($customer->getId());
-    //     $order->setCustomerIsGuest(0);
-    //     $order->save();
-    // }
-
 }

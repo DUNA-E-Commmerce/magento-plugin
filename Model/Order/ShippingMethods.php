@@ -143,14 +143,6 @@ class ShippingMethods implements ShippingMethodsInterface
         if ($quote->isVirtual() || 0 == $quote->getItemsCount()) {
             return [];
         }
-        //log
-        $shippingMethod1 = $quote->getShippingAddress()->getShippingMethod();
-        $shippingMethod2 = $quote->getShippingAddress()->getShippingMethod();
-
-        $this->helper->log('debug','shippingMethod-selected1:', [$shippingMethod1]);
-        $this->helper->log('debug','shippingMethod-selected2:', [$shippingMethod2]);
-        $this->helper->log('debug','shippingMethod-getMethodTitle:', [$this->shippingMethod]);
-        $this->helper->log('debug','shippingMethod-selected-getShippingDescription:', [$quote->getData()]);
 
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
