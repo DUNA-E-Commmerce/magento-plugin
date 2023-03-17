@@ -372,7 +372,7 @@ class OrderTokens
                 'items_total_amount' => $this->priceFormat($totals),
                 'sub_total' => $this->priceFormat($subtotal_amount),
                 'total_amount' => $this->priceFormat($totals),
-                'total_discount' => $discount_amount,
+                'total_discount' => $this->priceFormat($discount_amount),
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
@@ -446,7 +446,7 @@ class OrderTokens
         $subTotalWithDiscount = $quote->getSubtotalWithDiscount();
         $subTotal = $quote->getSubtotal();
         $couponAmount = $subTotal - $subTotalWithDiscount;
-        return $this->priceFormat($couponAmount);
+        return $couponAmount;
     }
 
     /**
