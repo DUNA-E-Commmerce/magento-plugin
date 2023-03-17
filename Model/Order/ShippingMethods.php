@@ -418,7 +418,7 @@ class ShippingMethods implements ShippingMethodsInterface
             "zipcode" => $shippingAddress->getPostcode(),
             "state_name" => $shippingAddress->getRegion(),
             "country_code" => $shippingAddress->getCountryId(),
-            "additional_description" => $shippingAddress->getAdditionalDescription(),
+            "additional_description" => $shippingAddress->getAdditionalDescription().' (ShippingMethods)',
             "address_type" => $shippingAddress->getAddressType(),
             "is_default" => (bool)$shippingAddress->getIsDefaultShipping(),
             "created_at" => $shippingAddress->getCreatedAt(),

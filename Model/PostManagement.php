@@ -175,13 +175,15 @@ class PostManagement {
 
             return json_encode($output);
         } catch(Exception $e) {
-            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
 
-            return false;
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+
+            return json_encode($err);
         }
     }
 
@@ -275,7 +277,7 @@ class PostManagement {
         $shipping_address = [
             'firstname' => $shippingData['first_name'],
             'lastname' => $shippingData['last_name'],
-            'street' => $shippingData['address1'].' '.$shippingData['address2'],
+            'street' => $shippingData['address1'].', '.$shippingData['address2'],
             'city' => $shippingData['city'],
             'country_id' => $shippingData['country_code'],
             'region' => $regionId,
@@ -292,7 +294,7 @@ class PostManagement {
         $billing_address = [
             'firstname' => $billingData['first_name'],
             'lastname' => $billingData['last_name'],
-            'street' => $billingData['address1'].' '.$billingData['address2'],
+            'street' => $billingData['address1'].', '.$billingData['address2'],
             'city' => $billingData['city'],
             'country_id' => $billingData['country_code'],
             'region' => $regionId,

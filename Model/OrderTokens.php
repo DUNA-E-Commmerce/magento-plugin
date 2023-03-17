@@ -525,7 +525,7 @@ class OrderTokens
                 'last_name' => 'N/A',
                 'phone' => $storeObj->getPhone(),
                 'identity_document' => '-',
-                'address_1' => $storeObj->getStreet().', '.$storeObj->getNumber(),
+                'address_1' => "Tienda: {$storeObj->getStreet()}, {$storeObj->getNumber()}",
                 'address_2' => $storeObj->getColony(),
                 'city' => ($storeObj->getTown()==='-') ? "Ciudad de México" : $storeObj->getTown(),
                 'zipcode' => $storeObj->getZipCode(),
