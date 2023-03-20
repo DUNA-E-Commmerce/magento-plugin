@@ -107,12 +107,12 @@ class PostManagement {
             $bodyReq = $this->request->getBodyParams();
             $output = [];
 
-            $this->helper->log('debug', 'Notify New Order:', $bodyReq);
+            $this->logger->debug('Notify Payload: ', $bodyReq);
 
             $order = $bodyReq['order'];
             $orderId = $order['order_id'];
             $payment_status = $order['payment_status'];
-            $email = $order['shipping_address']['email'];
+            $email = $order['payment']['data']['customer']['email'];
             $token = $order['token'];
             $paymentProcessor = $order['payment']['data']['processor'];
             $metadata = $order['payment']['data']['metadata'];
@@ -133,23 +133,25 @@ class PostManagement {
             ];
 
             if ($active) {
-                $order = $this->quoteManagement->submit($quote);
+                $mgOrder = $this->quoteManagement->submit($quote);
+
+                $this->logger->debug("Order ($mgOrder->getId()) created with status {$mgOrder->getState()}");
 
                 if(!empty($userComment)) {
-                    $order->addStatusHistoryComment(
+                    $mgOrder->addStatusHistoryComment(
                         "Comentario de cliente<br>
                         <i>{$userComment}</i>"
                     )->setIsVisibleOnFront(true);
                 }
 
-                $order->setShippingAmount($shippingAmount);
-                $order->setBaseShippingAmount($shippingAmount);
-                $order->setGrandTotal($totalAmount);
-                $order->setBaseGrandTotal($totalAmount);
+                $mgOrder->setShippingAmount($shippingAmount);
+                $mgOrder->setBaseShippingAmount($shippingAmount);
+                $mgOrder->setGrandTotal($totalAmount);
+                $mgOrder->setBaseGrandTotal($totalAmount);
 
-                $this->updatePaymentState($order, $payment_status, $totalAmount);
+                $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
-                $order->addStatusHistoryComment(
+                $mgOrder->addStatusHistoryComment(
                     "Payment Processed by <strong>DEUNA Checkout</strong><br>
                     <strong>Token:</strong> {$token}<br>
                     <strong>OrderID:</strong> {$orderId}<br>
@@ -158,7 +160,7 @@ class PostManagement {
                     <strong>Processor:</strong> {$paymentProcessor}"
                 );
 
-                $order->save();
+                $mgOrder->save();
 
                 $output['status'] = 'saved';
 
@@ -264,7 +266,7 @@ class PostManagement {
                   ->setTotalPaid($totalAmount)
                   ->setPaymentMethod('checkmo');
 
-            $this->logger->info("Order ({$order->id}) change status to PROCESSING");
+            $this->logger->info("Order ({$order->getId()}) change status to PROCESSING");
         }
     }
 
