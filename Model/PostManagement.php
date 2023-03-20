@@ -66,6 +66,8 @@ class PostManagement {
 
     protected $deunaShipping;
 
+    protected $quoteManagement;
+
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -135,7 +137,7 @@ class PostManagement {
             if ($active) {
                 $mgOrder = $this->quoteManagement->submit($quote);
 
-                $this->logger->debug("Order ($mgOrder->getId()) created with status {$mgOrder->getState()}");
+                $this->logger->debug("Order ({$mgOrder->getIncrementId()}) created with status {$mgOrder->getState()}");
 
                 if(!empty($userComment)) {
                     $mgOrder->addStatusHistoryComment(
@@ -266,7 +268,7 @@ class PostManagement {
                   ->setTotalPaid($totalAmount)
                   ->setPaymentMethod('checkmo');
 
-            $this->logger->info("Order ({$order->getId()}) change status to PROCESSING");
+            $this->logger->info("Order ({$order->getIncrementId()}) change status to PROCESSING");
         }
     }
 
