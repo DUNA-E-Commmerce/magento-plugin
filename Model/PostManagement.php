@@ -49,6 +49,10 @@ class PostManagement {
     protected $quoteFactory;
 
     protected $quoteModel;
+
+    /**
+     * @var CRI
+     */
     protected $cri;
 
     /**
