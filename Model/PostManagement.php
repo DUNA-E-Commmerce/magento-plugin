@@ -66,8 +66,6 @@ class PostManagement {
 
     protected $deunaShipping;
 
-    protected $quoteManagement;
-
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -137,7 +135,7 @@ class PostManagement {
             if ($active) {
                 $mgOrder = $this->quoteManagement->submit($quote);
 
-                $this->logger->debug("Order ({$mgOrder->getIncrementId()}) created with status {$mgOrder->getState()}");
+                $this->logger->debug("Order created with status {$mgOrder->getState()}");
 
                 if(!empty($userComment)) {
                     $mgOrder->addStatusHistoryComment(
