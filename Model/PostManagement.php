@@ -277,25 +277,10 @@ class PostManagement {
     public function updateAddresses($quote, $data)
     {
         $shippingData = $data['shipping_address'];
-
-        $regionId = $this->deunaShipping->getRegionId($shippingData['state_name']);
-
-        $shipping_address = [
-            'firstname' => $shippingData['first_name'],
-            'lastname' => $shippingData['last_name'],
-            'street' => $shippingData['address1'].', '.$shippingData['address2'],
-            'city' => $shippingData['city'],
-            'country_id' => $shippingData['country_code'],
-            'region' => $regionId,
-            'postcode' => $shippingData['zipcode'],
-            'telephone' => $shippingData['phone'],
-        ];
-
-        $quote->getShippingAddress()->addData($shipping_address);
-
         $billingData = $data['billing_address'];
 
-        $regionId = $this->deunaShipping->getRegionId($billingData['state_name']);
+        //  Billing Address
+        $billingRegionId = $this->deunaShipping->getRegionId($billingData['state_name']);
 
         $billing_address = [
             'firstname' => $billingData['first_name'],
@@ -303,11 +288,27 @@ class PostManagement {
             'street' => $billingData['address1'].', '.$billingData['address2'],
             'city' => $billingData['city'],
             'country_id' => $billingData['country_code'],
-            'region' => $regionId,
+            'region' => $billingRegionId,
             'postcode' => $billingData['zipcode'],
             'telephone' => $billingData['phone'],
         ];
 
         $quote->getBillingAddress()->addData($billing_address);
+
+        // Shipping Address
+        $shippingRegionId = $this->deunaShipping->getRegionId($shippingData['state_name']);
+
+        $shipping_address = [
+            'firstname' => (empty($shippingData['first_name']) ? $billingData['first_name'] : $billingData['first_name']),
+            'lastname' => (empty($shippingData['last_name']) ? $billingData['last_name'] : $billingData['last_name']),
+            'street' => (empty($shippingData['address1']) ? $billingData['address1'] : $shippingData['address1']).', '.(empty($shippingData['address2']) ? $billingData['address2'] : $shippingData['address2']),
+            'city' => (empty($shippingData['city']) ? $billingData['city'] : $shippingData['city']),
+            'country_id' => (empty($shippingData['country_code']) ? $billingData['country_code'] : $shippingData['country_code']),
+            'region' => (empty($shippingRegionId) ? $billingRegionId : $shippingRegionId),
+            'postcode' => (empty($shippingData['zipcode']) ? $billingData['zipcode'] : $shippingData['zipcode']),
+            'telephone' => (empty($shippingData['phone']) ? $billingData['zipcode'] : $shippingData['phone']),
+        ];
+
+        $quote->getShippingAddress()->addData($shipping_address);
     }
 }

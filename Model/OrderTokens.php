@@ -189,7 +189,8 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         /**
-         * Comercio Dev: MAGENTO
+         * Merchant Dev: MAGENTO
+         * Used for local development
          */
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
@@ -215,7 +216,7 @@ class OrderTokens
         ];
     }
 
-        /**
+    /**
      * @param $addressId
      *
      * @return \Magento\Customer\Api\Data\AddressInterface
@@ -223,16 +224,20 @@ class OrderTokens
     public function getAddressData($addressId)
     {
         $addressData = null;
+
         try {
             $addressData = $this->addressRepository->getById($addressId);
-        } catch (\Exception $exception) {
-            $this->helper->log('debug', 'getAddressDataById', [$exception->getMessage()]);
-
+        } catch (\Exception $e) {
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ]);
         }
         return $addressData;
     }
 
-      /**
+    /**
      * @param TotalsInformationManagementInterface $subject
      * @param int                                  $cartId
      * @param TotalsInformationInterface           $addressInformation
@@ -247,7 +252,11 @@ class OrderTokens
         int $cartId,
         TotalsInformationInterface $addressInformation
     ) {
-        $this->helper->log('debug', 'Environment', ["soy el metodo AfterCalculate"]);
+        $this->logger->debug('AfterCalculate Method', [
+            'cartId' => $cartId,
+            'subject' => $subject,
+            'addressInformation' => $addressInformation,
+        ]);
 
         return null;
     }
@@ -265,10 +274,6 @@ class OrderTokens
         $headers = $this->getHeaders();
 
         if($this->getEnvironment()!=='prod') {
-            $this->helper->log('debug', 'Environment', [$this->getEnvironment()]);
-            $this->helper->log('debug', 'URL Requested', [$url]);
-            $this->helper->log('debug', 'API-KEY', [$this->getPrivateKey()]);
-
             $this->logger->debug("Environment", [
                 'environment' => $this->getEnvironment(),
                 'apikey' => $this->getPrivateKey(),
@@ -279,27 +284,38 @@ class OrderTokens
 
         $configuration['header'] = false;
 
+        if($this->getEnvironment()!=='prod') {
+            $this->logger->debug('CURL Configuration sent', [
+                'config' => $configuration,
+            ]);
+        }
+
         $this->curl->setConfig($configuration);
         $this->curl->write($method, $url, $http_ver, $headers, $body);
 
         $response = $this->curl->read();
 
         if (!$response) {
-            throw new LocalizedException(__('No response from request to ' . $url));
+            $msg = "No response from request to {$url}";
+            $this->logger->warning($msg);
+            throw new LocalizedException(__($msg));
         }
 
         $response = $this->json->unserialize($response);
 
         if($this->getEnvironment()!=='prod') {
-            $this->logger->debug("Request response", [
-                'response' => $response,
+            $this->logger->debug("Response", [
+                'data' => $response,
             ]);
         }
 
         if(!empty($response['error'])) {
             $error = $response['error'];
 
-            $this->helper->log('debug', 'Error on DEUNA Token', [$error]);
+            $this->logger->debug('Error on DEUNA Token', [
+                'url' => $url,
+                'error' => $error,
+            ]);
 
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
         }
@@ -308,7 +324,9 @@ class OrderTokens
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
 
-        $this->helper->log('debug','Token Response', [$response]);
+        $this->logger->debug('Token Response', [
+            'token' => $response,
+        ]);
 
         return $response;
     }
