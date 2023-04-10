@@ -121,10 +121,15 @@ class Checkout implements CheckoutInterface
     public function applycoupon(int $cartId)
     {
         try {
+            $this->logger->debug('Aplicando Coupon');
             $quote = $this->quoteRepository->getActive($cartId);
 
             $body = $this->request->getBodyParams();
             $couponCode = $body['coupon_code'];
+
+            $this->logger->debug("Cupon a aplicar: {$couponCode}", [
+                'payload' => $body,
+            ]);
 
             $ruleId = $this->_coupon->loadByCode($couponCode)->getRuleId();
 
@@ -133,14 +138,25 @@ class Checkout implements CheckoutInterface
                 $quote->setCouponCode($couponCode)->collectTotals();
                 $quote->save();
 
+                $this->logger->debug("Cupon aplicado");
+
                 $order = $this->orderTokens->getBody($quote);
+
+                $this->logger->debug("Response", [
+                    'data' => $order,
+                ]);
 
                 return $this->getJson($order);
             } else {
-                return $this->getJson([
+                $err = [
                     'code' => 'EM-6001',
-                    'message' => 'No se encontro cupón válido'
-                ], '406');
+                    'message' => 'No se encontro cupón válido',
+                    'status_code' => '406',
+                ];
+
+                $this->logger->warning("Cupon ($couponCode) no encontrado", $err);
+
+                return $this->getJson($err, $err['status_code']);
             }
         } catch(Exception $e) {
             $err = [

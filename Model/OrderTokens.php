@@ -553,8 +553,8 @@ class OrderTokens
                 'additional_description' => 'Recoger en tienda',
                 'address_type' => 'home',
                 'is_default' => true,
-                'lat' => $storeObj->getLat(),
-                'lng' => $storeObj->getLon(),
+                'lat' => (float) $storeObj->getLat(),
+                'lng' => (float) $storeObj->getLon(),
             ];
         } else {
             $shippingAddress = $quote->getShippingAddress();
