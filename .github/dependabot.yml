@@ -14,7 +14,7 @@ updates:
       time: "09:00"
       timezone: "UTC"
     target-branch: develop
-    registries: "github-octocat"
+    registries: "*"
     commit-message:
       prefix: "[composer] security"
 
