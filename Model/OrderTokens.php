@@ -21,7 +21,6 @@ use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
-use Entrepids\StoresLocator\Model\StoresFactory;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -35,11 +34,8 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
-    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE = 'plataformas_magento';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
-
-    /** @var Entrepids\StoresLocator\Model\StoresFactory */
-    private $_stores;
 
     /**
      * @var Session
@@ -134,7 +130,6 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
-        StoresFactory $stores
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -154,7 +149,6 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
-        $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
 
@@ -360,21 +354,6 @@ class OrderTokens
         $addressStore = "";
         $lat = 0;
         $long = 0;
-
-        /**
-         * Used when pickup option is selected in BB&B
-         */
-        if($shippingMethod == "bopis_bopis") {
-            $this->logger->info('BB&B / Pickup was selected');
-
-            $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-            $nameStore =  $this->replace_null($stores->getName(),"información no disponible");
-            $addressStore = $this->replace_null($stores->getStreet()." ".$stores->getNumber(),"información no disponible");
-            $lat = $this->replace_null($stores->getLat(),0);
-            $long = $this->replace_null($stores->getLon(),0);
-
-            $shippingMethodSelected = "pickup";
-        }
 
         $discount_amount = $this->getDiscountAmount($quote);
         $subtotal_amount = $quote->getSubtotal();
