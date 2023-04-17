@@ -251,9 +251,6 @@ class OrderTokens
      */
     private function request($body)
     {
-        //log
-       // $this->helper->log('debug', 'request body', [$body]);
-
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
@@ -270,7 +267,6 @@ class OrderTokens
         $configuration['header'] = false;
 
         $this->curl->setConfig($configuration);
-
         $this->curl->write($method, $url, $http_ver, $headers, $body);
 
         $response = $this->curl->read();
@@ -323,6 +319,8 @@ class OrderTokens
         $lat = 0;
         $long = 0;
 
+        $discount_amount = $this->getDiscountAmount($quote);
+        $subtotal_amount = $quote->getSubtotal();
         $totals += $tax_amount;
 
         $body = [
@@ -332,9 +330,9 @@ class OrderTokens
                 'tax_amount' => $this->priceFormat($tax_amount),
                 'total_tax_amount' => $this->priceFormat($tax_amount),
                 'items_total_amount' => $this->priceFormat($totals),
-                'sub_total' => $this->priceFormat($quote->getSubtotal()),
+                'sub_total' => $this->priceFormat($subtotal_amount),
                 'total_amount' => $this->priceFormat($totals),
-                'total_discount' => $this->getDiscountAmount($quote),
+                'total_discount' => $discount_amount,
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
@@ -482,20 +480,21 @@ class OrderTokens
         $order['order']['shipping_address'] = [
             'id' => 0,
             'user_id' => (string) 0,
-            'first_name' => 'test',
-            'last_name' => 'test',
+            'first_name' => 'N/A',
+            'last_name' => 'N/A',
             'phone' => '8677413045',
             'identity_document' => '',
             'lat' => 0,
             'lng' => 0,
-            'address_1' => 'test',
-            'address_2' => 'test',
-            'city' => 'test',
-            'zipcode' => 'test',
-            'state_name' => 'test',
-            'country_code' => 'CL',
-            'additional_description' => '',
-            'address_type' => '',
+            'address_1' => '',
+            'address_2' => '',
+            'city' => 'Ciudad de México',
+            'zipcode' => '00000',
+            'state_code' => 'CDMX',
+            'state_name' => 'Ciudad de México',
+            'country_code' => 'MX',
+            'additional_description' => 'Recoger en Tienda',
+            'address_type' => 'home',
             'is_default' => false,
             'created_at' => '',
             'updated_at' => '',
