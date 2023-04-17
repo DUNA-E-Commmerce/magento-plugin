@@ -143,15 +143,6 @@ class ShippingMethods implements ShippingMethodsInterface
         if ($quote->isVirtual() || 0 == $quote->getItemsCount()) {
             return [];
         }
-        //log
-        $shippingMethod1 = $quote->getShippingAddress()->getShippingMethod();
-        $shippingMethod2 = $quote->getShippingAddress()->getShippingMethod();
-
-
-        $this->helper->log('debug','shippingMethod-selected1:', [$shippingMethod1]);
-        $this->helper->log('debug','shippingMethod-selected2:', [$shippingMethod2]);
-        $this->helper->log('debug','shippingMethod-getMethodTitle:', [$this->shippingMethod]);
-        $this->helper->log('debug','shippingMethod-selected-getShippingDescription:', [$quote->getData()]);
 
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
@@ -212,9 +203,6 @@ class ShippingMethods implements ShippingMethodsInterface
 
         /** @var Quote $quote */
         $quote = $this->quoteRepository->getActive($cartId);
-
-      
-
 
         // Get Shipping Rates
         $shippingRates = $this->getShippingRates($quote);
@@ -310,13 +298,13 @@ class ShippingMethods implements ShippingMethodsInterface
             $shippingAddress->collectShippingRates();
             $shippingAddress->save();
             $shippingRates = $shippingAddress->getGroupedAllShippingRates();
-    
+
             foreach ($shippingRates as $carrierRates) {
                 foreach ($carrierRates as $rate) {
                     $output[] = $this->converter->modelToDataObject($rate, $quote->getQuoteCurrencyCode());
                 }
             }
-    
+
             return $output;
         }
 
@@ -430,7 +418,7 @@ class ShippingMethods implements ShippingMethodsInterface
             "zipcode" => $shippingAddress->getPostcode(),
             "state_name" => $shippingAddress->getRegion(),
             "country_code" => $shippingAddress->getCountryId(),
-            "additional_description" => $shippingAddress->getAdditionalDescription(),
+            "additional_description" => $shippingAddress->getAdditionalDescription().' (ShippingMethods)',
             "address_type" => $shippingAddress->getAddressType(),
             "is_default" => (bool)$shippingAddress->getIsDefaultShipping(),
             "created_at" => $shippingAddress->getCreatedAt(),
