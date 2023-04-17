@@ -151,7 +151,6 @@ class OrderTokens
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-
         $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
@@ -292,6 +291,7 @@ class OrderTokens
         if (!$response) {
             $msg = "No response from request to {$url}";
             $this->logger->warning($msg);
+
             throw new LocalizedException(__($msg));
         }
 
@@ -305,6 +305,7 @@ class OrderTokens
 
         if(!empty($response['error'])) {
             $error = $response['error'];
+            $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
 
             $this->logger->debug('Error on DEUNA Token', [
                 'url' => $url,
@@ -321,13 +322,8 @@ class OrderTokens
         $this->logger->debug('Token Response', [
             'token' => $response,
         ]);
-
+        
         return $response;
-    }
-
-    private function replace_null($value, $replace) {
-        if (is_null($value)) return $replace;
-        return $value;
     }
 
     /**
