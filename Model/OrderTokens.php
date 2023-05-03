@@ -22,6 +22,9 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Entrepids\StoresLocator\Model\StoresFactory;
+use Magento\Catalog\Helper\Image;
+use Magento\Framework\App\ObjectManager;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -115,6 +118,11 @@ class OrderTokens
      */
     private $logger;
 
+    /**
+     * @var Image
+     */
+    protected $imageHelper;
+
     public function __construct(
         Session $checkoutSession,
         Curl $curl,
@@ -134,6 +142,7 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
+        Image $imageHelper,
         StoresFactory $stores
     ) {
         $this->checkoutSession = $checkoutSession;
@@ -154,6 +163,7 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
+        $this->imageHelper = $imageHelper;
         $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
@@ -615,9 +625,19 @@ class OrderTokens
      */
     private function getImageUrl($item): string
     {
-        $mediaUrl = $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
-        $thumbnail = $item->getProduct()->getThumbnail();
-        return $mediaUrl . 'catalog/product' . $thumbnail;
+        $productRepository = ObjectManager::getInstance()->get(ProductRepositoryInterface::class);
+        $product = $productRepository->get($item->getProduct()->getSku());
+
+        $image = $product->getMediaGalleryImages()->getFirstItem();
+
+        if ($image->getMediaType() === 'image') {
+            return $this->imageHelper
+                ->init($product, 'product_page_image_small')
+                ->setImageFile($image->getFile())
+                ->getUrl();
+        }
+
+        return $this->imageHelper->init($product, 'product_page_image_small')->getUrl();
     }
 
     /**
