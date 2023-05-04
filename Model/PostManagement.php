@@ -17,6 +17,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Framework\HTTP\Client\Curl;
 
 class PostManagement {
 
@@ -69,6 +70,8 @@ class PostManagement {
     protected $orderRepository;
 
     protected $deunaShipping;
+    
+    protected $curl;
 
     public function __construct(
         Request $request,
@@ -82,7 +85,8 @@ class PostManagement {
         CustomerRepositoryInterface $customerRepository,
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
-        ShippingMethods $deunaShipping
+        ShippingMethods $deunaShipping,
+        Curl $curl
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -96,6 +100,7 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
+        $this->curl = $curl;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
 
@@ -168,6 +173,7 @@ class PostManagement {
 
                 $output['status'] = 'saved';
 
+                $this->sendOrderId($orderId);
                 $this->logger->info("Pedido ({$orderId}) notificado satisfactoriamente", [
                     'data' => $output,
                 ]);
@@ -310,5 +316,26 @@ class PostManagement {
         ];
 
         $quote->getShippingAddress()->addData($shipping_address);
+    }
+
+    public function sendOrderId($orderId, $status = 'succeeded')
+    {
+        $url = 'https://your-host.com/toResponse';
+
+        $postData = array(
+            "status" => $status,
+            "data" => array(
+                "order_id" => $orderId
+            )
+        );
+
+        $this->curl->setHeaders(['Content-Type' => 'application/json']);
+        $this->curl->post($url, $postData);
+
+        $response = $this->curl->getBody();
+
+        $this->logger->debug('Send OrderId: ' . $orderId . ' Status: ' . $status);
+
+        return json_encode($response);
     }
 }
