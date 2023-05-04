@@ -22,7 +22,6 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 class OrderTokens
@@ -150,7 +149,6 @@ class OrderTokens
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
         $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
@@ -327,6 +325,52 @@ class OrderTokens
     }
 
     /**
+     * Returns information about the current store
+     *
+     * @return \Magento\Framework\DataObject
+     */
+    public function getDataStore()
+    {
+        $storeModel = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Store\Model\Information::class);
+        $storeInfo = $storeModel->getStoreInformationObject($this->storeManager->getStore());
+
+        if (!$storeInfo){
+            $storeInfo['name']= '';
+            $storeInfo['street_line1']= '';
+            $storeInfo['street_line2']= '';
+            $storeInfo['city']= '';
+        }
+
+        $storeInfo['lng']= 0;
+        $storeInfo['lat']= 0;
+
+        return $storeInfo;
+    }
+
+    /**
+     * Get the selected shipping method for the given quote
+     *
+     * @param \Magento\Quote\Model\Quote $quote The quote for which to get the selected shipping method
+     * @return array The selected shipping method as an array with keys 'fromSession' (a boolean indicating whether the shipping method is native to Magento) and 'method' (the name of the selected shipping method)
+     */
+    public function getShippingMethod(\Magento\Quote\Model\Quote $quote)
+    {
+        if ($quote->getShippingAddress()->getShippingMethod()) {
+            $shippingMethodSelected['fromSession'] = false;
+            $shippingMethodSelected['method'] = $quote->getShippingAddress()->getShippingMethod();
+        } else {
+            $shippingMethodSelected['fromSession'] = true;
+            $shippingMethodSelected['method'] = $this->checkoutSession->getData('shippingMethod');
+        }
+
+        if ($shippingMethodSelected['method'] !== 'pickup'){
+            $shippingMethodSelected['method'] = 'delivery';
+        }
+
+        return $shippingMethodSelected;
+    }
+
+    /**
      * @return array
      */
     public function getBody($quote): array
@@ -334,22 +378,10 @@ class OrderTokens
         $totals = $quote->getSubtotalWithDiscount();
         $domain = $this->storeManager->getStore()->getBaseUrl();
         $stores = [];
-
         $discounts = $this->getDiscounts($quote);
-
         $tax_amount = $quote->getShippingAddress()->getBaseTaxAmount();
-
-        /**
-         * Initial Data for Delivery Methods
-         */
-        $shippingAddress = $quote->getShippingAddress();
-        $shippingMethod =  $shippingAddress->getShippingMethod();
-
-        $shippingMethodSelected = "delivery";
-        $nameStore = "";
-        $addressStore = "";
-        $lat = 0;
-        $long = 0;
+        $shippingMethodSelected = $this->getShippingMethod($quote);
+        $storeInfo = $this->getDataStore();
 
         $discount_amount = $this->getDiscountAmount($quote);
         $subtotal_amount = $quote->getSubtotal();
@@ -370,16 +402,16 @@ class OrderTokens
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
                 'shipping_options' => [
-                    'type' => $shippingMethodSelected,
+                    'type' => $shippingMethodSelected['method'],
                     'details' => [
-                        'store_name' => $nameStore,
-                        'address' =>  $addressStore,
+                        'store_name' => $storeInfo['name'],
+                        'address' =>  $storeInfo['street_line1'] . ' '. $storeInfo['street_line2'] . ',  ' . $storeInfo['city'],
                         'address_coordinates' => [
-                            'lat' => $lat,
-                            'lng' => $long
+                            'lat' => $storeInfo['lat'],
+                            'lng' => $storeInfo['lng']
                         ],
                         'contact' => [
-                            'name' => $nameStore
+                            'name' => $storeInfo['name']
                         ],
                     ]
                 ],
@@ -394,7 +426,7 @@ class OrderTokens
             ]
         ];
 
-        return $this->getShippingData($body, $quote, $stores);
+        return $this->getShippingData($body, $quote, $storeInfo, $shippingMethodSelected['fromSession'], $stores);
     }
 
     /**
@@ -506,31 +538,55 @@ class OrderTokens
      * @param $shippingAmount
      * @return array
      */
-    private function getShippingData($order, $quote, $storeObj)
+    private function getShippingData($order, $quote, $storeInfo, $fromSession, $storeObj)
     {
         $shippingOptions = $order['order']['shipping_options'];
 
         if($shippingOptions['type'] === 'pickup') {
-            $order['order']['shipping_address'] = [
-                'id' => 0,
-                'user_id' => (string) 0,
-                'first_name' => 'N/A',
-                'last_name' => 'N/A',
-                'phone' => $storeObj->getPhone(),
-                'identity_document' => '-',
-                'address_1' => "Tienda: {$storeObj->getStreet()}, {$storeObj->getNumber()}",
-                'address_2' => $storeObj->getColony(),
-                'city' => ($storeObj->getTown()==='-') ? "Ciudad de México" : $storeObj->getTown(),
-                'zipcode' => $storeObj->getZipCode(),
-                'state_code' => 'CDMX',
-                'state_name' => $storeObj->getState(),
-                'country_code' => (empty($storeObj->getCountry())) ? "MX" : $storeObj->getCountry(),
-                'additional_description' => 'Recoger en tienda',
-                'address_type' => 'home',
-                'is_default' => true,
-                'lat' => (float) $storeObj->getLat(),
-                'lng' => (float) $storeObj->getLon(),
-            ];
+
+            if ($fromSession) {
+                $order['order']['shipping_address'] = [
+                    'id' => $this->storeManager->getStore()->getId(),
+                    'user_id' => (string) 0,
+                    'first_name' => 'N/A',
+                    'last_name' => 'N/A',
+                    'phone' => $storeInfo['phone'],
+                    'identity_document' => '-',
+                    'address_1' => "Tienda: {$storeInfo['name']}, {$storeInfo['street_line1']}",
+                    'address_2' => $storeInfo['street_line2'],
+                    'city' => $storeInfo['city'],
+                    'zipcode' => $storeInfo['postcode'],
+                    'state_code' => $storeInfo['region_id'],
+                    'state_name' => $storeInfo['region'],
+                    'country_code' => $storeInfo['country_id'],
+                    'additional_description' => 'Recoger en tienda',
+                    'address_type' => 'home',
+                    'is_default' => true,
+                    'lat' => (float) $storeInfo['lat'],
+                    'lng' => (float) $storeInfo['lng'],
+                ];
+            } else {
+                $order['order']['shipping_address'] = [
+                    'id' => 0,
+                    'user_id' => (string) 0,
+                    'first_name' => 'N/A',
+                    'last_name' => 'N/A',
+                    'phone' => $storeObj->getPhone(),
+                    'identity_document' => '-',
+                    'address_1' => "Tienda: {$storeObj->getStreet()}, {$storeObj->getNumber()}",
+                    'address_2' => $storeObj->getColony(),
+                    'city' => ($storeObj->getTown() === '-') ? "Ciudad de México" : $storeObj->getTown(),
+                    'zipcode' => $storeObj->getZipCode(),
+                    'state_code' => 'CDMX',
+                    'state_name' => $storeObj->getState(),
+                    'country_code' => (empty($storeObj->getCountry())) ? "MX" : $storeObj->getCountry(),
+                    'additional_description' => 'Recoger en tienda',
+                    'address_type' => 'home',
+                    'is_default' => true,
+                    'lat' => (float) $storeObj->getLat(),
+                    'lng' => (float) $storeObj->getLon(),
+                ];
+            }
         } else {
             $shippingAddress = $quote->getShippingAddress();
             $shippingAmount = $this->priceFormat($shippingAddress->getShippingAmount());
