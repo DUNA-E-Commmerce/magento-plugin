@@ -29,4 +29,26 @@ $btnLabel = $escaper->escapeHtml(__('Checkout'));
         }
     }
     </script>
+    <script>
+        require(['jquery' ,'Magento_Customer/js/customer-data'], function ($,customerData) {
+            $('#block-summary').on('change', function() {
+                setTimeout(function() {
+                    var data = window.localStorage.getItem('mage-cache-storage');
+                    var parsedData = JSON.parse(data);
+                    var shippingMethodCode = parsedData['cart-data'].shippingMethodCode;
+
+                    $.ajax({
+                        url: '/duna/set/shippingmethoddata',
+                        type: 'post',
+                        data: {
+                            shippingMethodCode: shippingMethodCode
+                        },
+                        success: function(response) {
+                           // console.log('Save data in session');
+                        }
+                    });
+                }, 1000);
+            });
+        });
+    </script>
 </div>
