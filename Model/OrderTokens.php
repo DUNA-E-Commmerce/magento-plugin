@@ -275,7 +275,7 @@ class OrderTokens
      * @return mixed
      * @throws LocalizedException
      */
-    private function request($body)
+    public function request($body)
     {
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
