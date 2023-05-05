@@ -188,7 +188,7 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 
     /**
      * @return string
-     */encryptor
+     */
     public function getPrivateKey(): string
     {
         $env = $this->getEnvironment();

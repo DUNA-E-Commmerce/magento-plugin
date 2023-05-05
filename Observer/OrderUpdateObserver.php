@@ -4,10 +4,6 @@ namespace DUna\Payments\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
 use Psr\Log\LoggerInterface;
-use DUna\Payments\Helper\RequestHelper;
-use Magento\Sales\Api\Data\OrderInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order;
 
 class OrderUpdateObserver implements ObserverInterface
 {
@@ -16,24 +12,10 @@ class OrderUpdateObserver implements ObserverInterface
      */
     protected $logger;
     
-    /**
-     * @var RequestHelper
-     */
-    protected $requestHelper;
-    
-    /**
-     * @var OrderRepositoryInterface
-     */
-    private $orderRepository;
-
     public function __construct(
         LoggerInterface $logger,
-        RequestHelper $requestHelper,
-        OrderRepositoryInterface $orderRepository
     ) {
         $this->logger = $logger;
-        $this->requestHelper = $requestHelper;
-        $this->orderRepository = $orderRepository;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -44,9 +26,15 @@ class OrderUpdateObserver implements ObserverInterface
 
         if ($state === 'canceled' || $status === 'canceled'){
             $orderId = $order->getId();
-            $order = $this->orderRepository->get($orderId);
+            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+            $orderRepository = $objectManager->get(\Magento\Sales\Api\OrderRepositoryInterface::class);
+
+            $orderId = $order->getId();
+
+            $order = $orderRepository->get($orderId);
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
+            
             try {
                 $resp = $this->cancelOrder($orderToken);
                 $this->logger->info('La orden con ID ' . $orderId . ' ha sido cancelado.');
@@ -63,8 +51,10 @@ class OrderUpdateObserver implements ObserverInterface
             'Accept: application/json',
             'Content-Type: application/json',
         ];
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
-        $response = $this->requestHelper->request($endpoint, 'POST', '', $headers);
+        $response = $requestHelper->request($endpoint, 'POST', '', $headers);
         
         return $response;
     }
