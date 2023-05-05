@@ -24,6 +24,9 @@ use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Catalog\Helper\Image;
+use Magento\Framework\App\ObjectManager;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 
 class OrderTokens
 {
@@ -100,7 +103,7 @@ class OrderTokens
      * @var QuoteIdMaskFactory
      */
     private $quoteIdMaskFactory;
-
+  
     /**
      * @var EncryptorInterface
      */
@@ -110,6 +113,11 @@ class OrderTokens
      * @var Logger
      */
     private $logger;
+
+    /**
+     * @var Image
+     */
+    protected $imageHelper;
 
     public function __construct(
         Session $checkoutSession,
@@ -130,6 +138,7 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
+        Image $imageHelper,
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -150,37 +159,36 @@ class OrderTokens
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
         $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
+        $this->imageHelper = $imageHelper;
     }
 
     /**
-     * @return string
+     * Returns the URL based on the current environment.
+     * 
+     * @return string The URL for the current environment.
      */
     private function getUrl(): string
     {
-        $env = $this->getEnvironment();
-
-        switch($env) {
+        switch ($this->getEnvironment()) {
             case 'develop':
                 return self::URL_DEVELOPMENT;
-                break;
             case 'staging':
                 return self::URL_STAGING;
-                break;
             default:
                 return self::URL_PRODUCTION;
-                break;
         }
     }
 
     /**
-     * @return string
+     * Returns the private key for the current environment.
+     *
+     * @return string The private key for the current environment.
      */
     public function getPrivateKey(): string
     {
         $env = $this->getEnvironment();
-
+        
         /**
          * Merchant Dev: MAGENTO
          * Used for local development
@@ -198,8 +206,11 @@ class OrderTokens
         return $this->encryptor->decrypt($privateKey);
     }
 
+
     /**
-     * @return string[]
+     * Returns the headers required for API requests.
+     *
+     * @return array The headers required for API requests.
      */
     private function getHeaders(): array
     {
@@ -210,24 +221,29 @@ class OrderTokens
     }
 
     /**
-     * @param $addressId
+     * Returns the address data for the specified address ID.
      *
-     * @return \Magento\Customer\Api\Data\AddressInterface
+     * @param int $addressId The ID of the address.
+     *
+     * @return \Magento\Customer\Api\Data\AddressInterface|null The address data or null if the address could not be found.
      */
-    public function getAddressData($addressId)
+    public function getAddressData(int $addressId): ?\Magento\Customer\Api\Data\AddressInterface
     {
-        $addressData = null;
-
         try {
-            $addressData = $this->addressRepository->getById($addressId);
+            return $this->addressRepository->getById($addressId);
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            $this->logger->error('Could not find address with ID ' . $addressId);
+
+            return null;
         } catch (\Exception $e) {
-            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
+            $this->logger->error('An error occurred while retrieving address with ID ' . $addressId, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
             ]);
+
+            return null;
         }
-        return $addressData;
     }
 
     /**
@@ -398,8 +414,10 @@ class OrderTokens
     }
 
     /**
-     * @param $quote
-     * @return array|void
+     * This function retrieves the discounts related to a quote object.
+     *
+     * @param $quote The quote object to get discounts for.
+     * @return array|null Returns an array containing discount information if a coupon code is applied, otherwise null.
      */
     private function getDiscounts($quote)
     {
@@ -414,7 +432,7 @@ class OrderTokens
             $freeShipping = $rule->getSimpleFreeShipping();
 
             $discount = [
-                'amount' => $this->priceFormat($couponAmount),
+                'amount' => $this->priceFormat($couponAmount), 
                 'code' => $coupon,
                 'reference' => $coupon,
                 'description' => '',
@@ -427,6 +445,7 @@ class OrderTokens
             ];
             return $discount;
         }
+        return null;
     }
 
     /**
@@ -565,8 +584,10 @@ class OrderTokens
     }
 
     /**
-     * @param $price
-     * @return int
+     * This function formats a price to a fixed point representation with two decimal places and returns it as an integer.
+     *
+     * @param $price The price to format.
+     * @return int Returns the formatted price as an integer.
      */
     public function priceFormat($price): int
     {
@@ -576,7 +597,9 @@ class OrderTokens
     }
 
     /**
-     * @return string
+     * This function returns the weight unit of the store as configured in the system configuration.
+     *
+     * @return string Returns the weight unit as a string.
      */
     private function getWeightUnit(): string
     {
@@ -584,15 +607,27 @@ class OrderTokens
     }
 
     /**
-     * @param $item
-     * @return string
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * This function returns the URL for the thumbnail image of the specified item.
+     *
+     * @param $item The item for which to retrieve the thumbnail image URL.
+     * @return string Returns the URL for the thumbnail image as a string.
      */
-    private function getImageUrl($item): string
+    private function getImageUrl($item): string 
     {
-        $mediaUrl = $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
-        $thumbnail = $item->getProduct()->getThumbnail();
-        return $mediaUrl . 'catalog/product' . $thumbnail;
+        /** @var ProductRepositoryInterface $productRepository */
+        $productRepository = ObjectManager::getInstance()->get(ProductRepositoryInterface::class);
+        $product = $productRepository->get($item->getProduct()->getSku());
+        
+        $image = $product->getMediaGalleryImages()->getFirstItem();
+
+        if ($image->getMediaType() === 'image') {
+            return $this->imageHelper
+                ->init($product, 'product_page_image_small')
+                ->setImageFile($image->getFile())
+                ->getUrl();
+        }
+
+        return $this->imageHelper->init($product, 'product_page_image_small')->getUrl();;
     }
 
     /**
