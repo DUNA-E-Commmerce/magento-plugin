@@ -69,9 +69,7 @@ class OrderUpdateObserver implements ObserverInterface
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
-        $response = $requestHelper->request($endpoint, 'POST', '', $headers);
-        
-        return $response;
+        $requestHelper->request($endpoint, 'POST', '', $headers);
     }
 
 }
