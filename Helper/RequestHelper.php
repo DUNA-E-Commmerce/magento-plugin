@@ -133,7 +133,6 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
                 'trace' => $e->getTrace(),
             ]);
         }
-
     }
 
     /**
