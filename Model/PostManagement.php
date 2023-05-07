@@ -115,27 +115,26 @@ class PostManagement {
             $order = $bodyReq['order'];
             $orderId = $order['order_id'];
             $payment_status = $order['payment_status'];
-            $email = $order['payment']['data']['customer']['email'];
+            $paymentData = $order['payment']['data'];
+            $email = $paymentData['customer']['email'];
             $token = $order['token'];
-            $paymentProcessor = $order['payment']['data']['processor'];
-            $metadata = $order['payment']['data']['metadata'];
+            $paymentProcessor = $paymentData['processor'];
             $paymentMethod = $order['payment_method'];
             $userComment = $order['user_instructions'];
             $shippingAmount = $order['shipping_amount']/100;
             $totalAmount = $order['total_amount']/100;
-            $authCode = isset($metadata['authorization_code']) ? $metadata['authorization_code'] : 'N/A';
+            $authCode = $paymentData['external_transaction_id'];
 
             $quote = $this->quotePrepare($order, $email);
 
             $active = $quote->getIsActive();
 
-            $output = [
-                'active' => boolval($active),
-                'orderId' => $orderId,
-                'token' => $token
-            ];
+            $output = [];
 
             if ($active) {
+                if($payment_status!='processed')
+                    return;
+
                 $mgOrder = $this->quoteManagement->submit($quote);
 
                 $this->logger->debug("Order created with status {$mgOrder->getState()}");
@@ -156,31 +155,47 @@ class PostManagement {
 
                 $mgOrder->addStatusHistoryComment(
                     "Payment Processed by <strong>DEUNA Checkout</strong><br>
-                    <strong>Token:</strong> {$token}<br>
-                    <strong>OrderID:</strong> {$orderId}<br>
+                    <strong>Card Type:</strong> {$paymentData['from_card']['card_brand']}<br>
+                    <strong>Card BIN:</strong> {$paymentData['from_card']['first_six']}<br>
                     <strong>Auth Code:</strong> {$authCode}<br>
                     <strong>Payment Method:</strong> {$paymentMethod}<br>
-                    <strong>Processor:</strong> {$paymentProcessor}"
+                    <strong>Processor:</strong> {$paymentProcessor}<br>
+                    <strong>Token:</strong> {$token}<br>"
                 );
 
+                $payment = $mgOrder->getPayment();
+                $payment->setAdditionalInformation('token', $token);
+                $payment->save();
+                
                 $mgOrder->save();
 
-                $output['status'] = 'saved';
+                $newOrderId = $mgOrder->getIncrementId();
 
-                $this->sendOrderId($orderId);
+                $this->logger->debug("Order ({$newOrderId}) saved");
 
-                $this->logger->info("Pedido ({$orderId}) notificado satisfactoriamente", [
-                    'data' => $output,
+                $output = [
+                    'status' => $order['status'],
+                    'data' => [
+                        'order_id' => $newOrderId,
+                    ]
+                ];
+
+                $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
+                    'response' => $output,
                 ]);
+
+                echo json_encode($output);
+
+                die();
             } else {
-                $output['status'] = 'failed';
+                $output['status'] = $order['status'];
 
                 $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
                     'data' => $output,
                 ]);
-            }
 
-            return json_encode($output);
+                return json_encode($output);
+            }
         } catch(Exception $e) {
             $err = [
                 'message' => $e->getMessage(),

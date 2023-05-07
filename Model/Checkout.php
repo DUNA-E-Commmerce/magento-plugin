@@ -13,6 +13,7 @@ use DUna\Payments\Api\CheckoutInterface;
 use Exception;
 use Magento\Framework\Exception\StateException;
 use Magento\SalesRule\Model\Coupon;
+use Magento\SalesRule\Model\Rule;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 
@@ -54,6 +55,8 @@ class Checkout implements CheckoutInterface
 
     protected $_coupon;
 
+    protected $saleRule;
+
     /**
      * @var Data
      */
@@ -90,6 +93,7 @@ class Checkout implements CheckoutInterface
         \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         Coupon $coupon,
+        Rule $saleRule,
         Data $helper,
         JsonFactory $resultJsonFactory,
         Request $request,
@@ -104,6 +108,7 @@ class Checkout implements CheckoutInterface
         $this->productRepository = $productRepository;
         $this->_scopeConfig = $scopeConfig;
         $this->_coupon = $coupon;
+        $this->saleRule = $saleRule;
         $this->helper = $helper;
         $this->resultJsonFactory = $resultJsonFactory;
         $this->request = $request;
@@ -127,6 +132,9 @@ class Checkout implements CheckoutInterface
             $body = $this->request->getBodyParams();
             $couponCode = $body['coupon_code'];
 
+            $originalSubtotalAmount = $quote->getSubtotal();
+            $originalSubtotalAmountWithDiscount = $quote->getSubtotalWithDiscount();
+
             $this->logger->debug("Cupon a aplicar: {$couponCode}", [
                 'payload' => $body,
             ]);
@@ -134,17 +142,65 @@ class Checkout implements CheckoutInterface
             $ruleId = $this->_coupon->loadByCode($couponCode)->getRuleId();
 
             if(!empty($ruleId)) {
-                $quote->getShippingAddress()->setCollectShippingRates(true);
-                $quote->setCouponCode($couponCode)->collectTotals();
-                $quote->save();
+                $rule = $this->saleRule->load($ruleId);
+                $couponType = $rule->getCouponType();
+                $couponAmount = $rule->getDiscountAmount();
 
-                $this->logger->debug("Cupon aplicado");
+                $quote->getShippingAddress()->setCollectShippingRates(true);
+                $quote->setCouponCode($couponCode)->collectTotals()->save();
+
+                if($couponType=="2") {
+                    $couponAmount = ($couponAmount / 100) * $quote->getSubtotal();
+                }
+
+                $freeShipping = $rule->getSimpleFreeShipping();
+                $ruleCode = $rule->getCouponCode();
+                $ruleName = $rule->getName();
+
+                $discountData = [
+                    'code' => $ruleCode,
+                    'reference' => $ruleName,
+                    'amount' => $this->orderTokens->priceFormat($couponAmount),
+                    'type' => 'coupon',
+                    'free_shipping' => [
+                        'is_free_shipping' => (bool) $freeShipping
+                    ],
+                ];
+
+                $this->logger->debug("Cupon aplicado", [
+                    'data' => $discountData,
+                    'discount_type' => $rule->getCouponType(),
+                    'subtotal' => $quote->getSubtotal(),
+                    'subtotalWithDiscount' => $quote->getSubtotalWithDiscount(),
+                ]);
 
                 $order = $this->orderTokens->getBody($quote);
 
+                $order['order']['discounts'][0] = $discountData;
+
+                $newSubtotalAmount = $quote->getSubtotal();
+                $newSubtotalAmountWithDiscount = $quote->getSubtotalWithDiscount();
+
                 $this->logger->debug("Response", [
                     'data' => $order,
+                    'couponsApplied' => $quote->getAppliedRuleIds(),
+                    'originalSubtotalAmount' => $originalSubtotalAmount,
+                    'newSubtotalAmount' => $newSubtotalAmount,
+                    'originalSubtotalAmountWithDiscount' => $originalSubtotalAmountWithDiscount,
+                    'newSubtotalAmountWithDiscount' => $newSubtotalAmountWithDiscount,
                 ]);
+
+                if($newSubtotalAmountWithDiscount==$originalSubtotalAmountWithDiscount) {
+                    $err = [
+                        'code' => 'EM-6001',
+                        'message' => "Cupón ({$couponCode}) inválido",
+                        'status_code' => '406',
+                    ];
+    
+                    $this->logger->warning("Cupon ({$couponCode}) inválido", $err);
+    
+                    return $this->getJson($err, $err['status_code']);
+                }
 
                 return $this->getJson($order);
             } else {
@@ -175,14 +231,19 @@ class Checkout implements CheckoutInterface
      * @return array|\Magento\Framework\Controller\Result\Json
      * @throws NoSuchEntityException
      */
-    public function removecoupon(int $cartId)
+    public function removecoupon(int $cartId, string $couponCode)
     {
         /** @var Quote $quote */
         $quote = $this->quoteRepository->getActive($cartId);
         $quote->getShippingAddress()->setCollectShippingRates(true);
-        $quote->setCouponCode('')->collectTotals();
-        $quote->save();
+        $quote->setCouponCode('')->collectTotals()->save();
+
         $order = $this->orderTokens->getBody($quote);
+
+        foreach($order['order']['discounts'] as $key => $discount) {
+            unset($order['order']['discounts'][$key]);
+        }
+
         return $this->getJson($order);
     }
 

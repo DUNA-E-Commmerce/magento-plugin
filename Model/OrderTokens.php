@@ -21,12 +21,12 @@ use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Catalog\Helper\Image;
 use Magento\Framework\App\ObjectManager;
 use Magento\Catalog\Api\ProductRepositoryInterface;
+use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 class OrderTokens
 {
@@ -696,4 +696,6 @@ class OrderTokens
     public function getEnvironment() {
         return $this->helper->getEnv();
     }
+
+    
 }

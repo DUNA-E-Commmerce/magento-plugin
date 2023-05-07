@@ -6,8 +6,9 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\HTTP\Adapter\Curl;
-use DUna\Payments\Helper\Data;
 use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
+use DUna\Payments\Helper\Data;
 use Zend_Http_Client;
 
 class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
@@ -52,15 +53,15 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
         Json $json,
         Curl $curl,
         Data $helper,
-        Logger $logger,
         EncryptorInterface $encryptor,
     ) {
         parent::__construct($context);
         $this->curl = $curl;
         $this->helper = $helper;
-        $this->logger = $logger;
         $this->encryptor = $encryptor;
         $this->json = $json;
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
@@ -68,91 +69,71 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
      * @return mixed
      * @throws LocalizedException
      */
-    public function request($endpoint, $method = 'GET', $body = null, $headers = false)
+    public function request($endpoint, $method = 'GET', $body = null, $headers = [])
     {
-        switch ($method) {
-            case 'POST':
-                $method = Zend_Http_Client::POST;
-                break;
-            case 'PUT':
-                $method = Zend_Http_Client::PUT;
-                break;
-            case 'DELETE':
-                $method = Zend_Http_Client::DELETE;
-                break;
-            case 'HEAD':
-                $method = Zend_Http_Client::HEAD;
-                break;
-            case 'OPTIONS':
-                $method = Zend_Http_Client::OPTIONS;
-                break;
-            default:
-                $method = Zend_Http_Client::GET;
-                break;
-        }
+        try {
+            switch ($method) {
+                case 'POST':
+                    $method = Zend_Http_Client::POST;
+                    break;
+                case 'PUT':
+                    $method = Zend_Http_Client::PUT;
+                    break;
+                case 'DELETE':
+                    $method = Zend_Http_Client::DELETE;
+                    break;
+                case 'HEAD':
+                    $method = Zend_Http_Client::HEAD;
+                    break;
+                case 'OPTIONS':
+                    $method = Zend_Http_Client::OPTIONS;
+                    break;
+                default:
+                    $method = Zend_Http_Client::GET;
+                    break;
+            }
 
-        $url = $this->getUrl() . $endpoint;
-        $http_ver = '1.1';
-        $headers = $this->getHeaders();
+            $url = $this->getUrl() . $endpoint;
+            $http_ver = '1.1';
+            $headers = $this->getHeaders();
 
-        if ($this->getEnvironment() !== 'prod') {
-            $this->logger->debug("Environment", [
-                'environment' => $this->getEnvironment(),
-                'apikey' => $this->getPrivateKey(),
-                'request' => $url,
-                'body' => $body,
+            if ($this->getEnvironment() !== 'prod') {
+                $this->logger->debug("Environment", [
+                    'environment' => $this->getEnvironment(),
+                    'apikey' => $this->getPrivateKey(),
+                    'request' => $url,
+                    'body' => $body,
+                ]);
+            }
+
+            $configuration['header'] = $headers;
+
+            if ($this->getEnvironment() !== 'prod') {
+                $this->logger->debug('CURL Configuration sent', [
+                    'config' => $configuration,
+                ]);
+            }
+
+            $this->curl->setConfig($configuration);
+            $this->curl->write($method, $url, $http_ver, $headers, $body);
+
+            $response = $this->curl->read();
+
+            $this->logger->debug('CURL Response', [
+                'response' => [
+                    'body' => $response,
+                ],
+            ]);
+
+            return $response;
+        } catch (\Exception $e) {
+            $this->logger->critical('Error on request cancellation', [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
             ]);
         }
 
-        $configuration['header'] = $headers;
-
-        if ($this->getEnvironment() !== 'prod') {
-            $this->logger->debug('CURL Configuration sent', [
-                'config' => $configuration,
-            ]);
-        }
-
-        $this->curl->setConfig($configuration);
-        $this->curl->write($method, $url, $http_ver, $headers, $body);
-
-        $response = $this->curl->read();
-
-        if (!$response) {
-            $msg = "No response from request to {$url}";
-            $this->logger->warning($msg);
-
-            throw new LocalizedException(__($msg));
-        }
-
-        $response = $this->json->unserialize($response);
-
-        if ($this->getEnvironment() !== 'prod') {
-            $this->logger->debug("Response", [
-                'data' => $response,
-            ]);
-        }
-
-        if (!empty($response['error'])) {
-            $error = $response['error'];
-            $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
-
-            $this->logger->debug('Error on DEUNA Token', [
-                'url' => $url,
-                'error' => $error,
-            ]);
-
-            throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
-        }
-
-        if (!empty($response['code'])) {
-            throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
-        }
-
-        $this->logger->debug('Token Response', [
-            'token' => $response,
-        ]);
-
-        return $response;
     }
 
     /**

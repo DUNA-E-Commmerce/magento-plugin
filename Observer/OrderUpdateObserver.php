@@ -3,19 +3,19 @@
 namespace DUna\Payments\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
-use Psr\Log\LoggerInterface;
+use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 class OrderUpdateObserver implements ObserverInterface
 {
-    /**
-     * @var LoggerInterface
-     */
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
+
     protected $logger;
     
-    public function __construct(
-        LoggerInterface $logger,
-    ) {
-        $this->logger = $logger;
+    public function __construct() {
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -35,18 +35,32 @@ class OrderUpdateObserver implements ObserverInterface
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
             
+            $this->logger->debug('Cancel Order', [
+                'orderId' => $orderId,
+                'orderToken' => $orderToken,
+            ]);
+
             try {
                 $resp = $this->cancelOrder($orderToken);
-                $this->logger->info('La orden con ID ' . $orderId . ' ha sido cancelado.');
+                $this->logger->debug("Order {$orderId} has been canceled successfully", [
+                    'orderId' => $orderId,
+                    'orderToken' => $orderToken,
+                    'response' => $resp,
+                ]);
             } catch (\Exception $e) {
-                $this->logger->critical('Error al cancelar la orden con ID ' . $orderId . ': ' . $e->getMessage());
+                $this->logger->critical("Error canceling order ID: {$orderId}", [
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'trace' => $e->getTrace(),
+                ]);
             }
         }
     }
 
     private function cancelOrder($orderToken)
     {
-        $endpoint = '/merchants/orders/'. $orderToken . '/cancel';
+        $endpoint = "/merchants/orders/{$orderToken}/cancel";
+
         $headers = [
             'Accept: application/json',
             'Content-Type: application/json',
@@ -54,11 +68,7 @@ class OrderUpdateObserver implements ObserverInterface
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
-        $response = $requestHelper->request($endpoint, 'POST', '', $headers);
-        
-        return $response;
+        $requestHelper->request($endpoint, 'POST', '', $headers);
     }
 
 }
-
-

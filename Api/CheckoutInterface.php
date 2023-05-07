@@ -19,8 +19,9 @@ interface CheckoutInterface
 
     /**
      * @param int $cartId
+     * @param string $couponCode
      * @return array|\Magento\Framework\Controller\Result\Json
      * @throws NoSuchEntityException
      */
-    public function removecoupon(int $cartId);
+    public function removecoupon(int $cartId, string $couponCode);
 }
