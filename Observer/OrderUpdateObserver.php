@@ -24,8 +24,6 @@ class OrderUpdateObserver implements ObserverInterface
         $state = $order->getState();
         $status = $order->getStatus();
 
-        $this->logger->debug('OrderUpdateObserver: ' . $state . ' - ' . $status);
-
         if ($state === 'canceled' || $status === 'canceled'){
             $orderId = $order->getId();
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
@@ -62,6 +60,7 @@ class OrderUpdateObserver implements ObserverInterface
     private function cancelOrder($orderToken)
     {
         $endpoint = "/merchants/orders/{$orderToken}/cancel";
+
         $headers = [
             'Accept: application/json',
             'Content-Type: application/json',
@@ -73,4 +72,3 @@ class OrderUpdateObserver implements ObserverInterface
     }
 
 }
-
