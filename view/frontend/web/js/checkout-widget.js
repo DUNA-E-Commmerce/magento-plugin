@@ -8,13 +8,7 @@ function isDev() {
 function isStaging() {
     var hostname = document.location.hostname;
 
-    if(hostname.includes('stg.')) {
-        return true;
-    } else if(hostname.includes('mcstaging.')) {
-        return true;
-    } else {
-        return false;
-    }
+    return hostname.includes('stg.') || hostname.includes('mcstaging.');
 }
 
 if(isDev()) {
@@ -67,7 +61,10 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
             this._super();
         },
         configure: async function (data) {
-            const obj = JSON.parse(data);
+            if(env!='Prod')
+                console.log(data)
+            
+                const obj = JSON.parse(data);
 
             let config = {
                 apiKey: this.apiKey,
@@ -78,25 +75,33 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
             await this.dunaCheckout.configure(config);
         },
         show: function () {
+            if(env!='Prod')
+                console.debug('Tokenize DEUNA Checkout');
+                
             const self = this,
                   tokenUrl = Url.build('rest/V1/DUna/token');
+
             this.preventClick();
+
             $.ajax({
                 method: 'GET',
                 url: tokenUrl
             })
             .done(async function (data) {
+                // Configure Modal based on data returned from token endpoint
                 await self.configure(data);
-
+                // Trigger DEUNA Checkout Modal
                 await self.dunaCheckout.show();
             });
         },
         preventClick: function () {
             const self = this;
+
             this.hasEnable(false);
+            
             setTimeout(function () {
                 self.hasEnable(true);
-            }, 4000)
+            }, 5000)
         }
     });
 });

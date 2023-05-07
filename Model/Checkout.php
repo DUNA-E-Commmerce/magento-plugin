@@ -10,8 +10,11 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use DUna\Payments\Model\OrderTokens;
 use Magento\Framework\Serialize\Serializer\Json;
 use DUna\Payments\Api\CheckoutInterface;
+use Exception;
 use Magento\Framework\Exception\StateException;
 use Magento\SalesRule\Model\Coupon;
+use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 class Checkout implements CheckoutInterface
 {
@@ -47,7 +50,6 @@ class Checkout implements CheckoutInterface
      */
     protected $productRepository;
 
-
     protected $_scopeConfig;
 
     protected $_coupon;
@@ -69,10 +71,16 @@ class Checkout implements CheckoutInterface
      */
     private $json;
 
+    private $logger;
+
     /**
      * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
      * @param \Magento\Quote\Model\Cart\ShippingMethodConverter $converter
      */
+
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
+
     public function __construct(
         \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
         \Magento\Quote\Model\Cart\ShippingMethodConverter $converter,
@@ -101,6 +109,8 @@ class Checkout implements CheckoutInterface
         $this->request = $request;
         $this->json = $json;
         $this->orderTokens = $orderTokens;
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
@@ -110,27 +120,53 @@ class Checkout implements CheckoutInterface
      */
     public function applycoupon(int $cartId)
     {
-        /** @var Quote $quote */
-        $quote = $this->quoteRepository->getActive($cartId);
+        try {
+            $this->logger->debug('Aplicando Coupon');
+            $quote = $this->quoteRepository->getActive($cartId);
 
-        $body = $this->request->getBodyParams();
-        $couponCode = $body['coupon_code'];
+            $body = $this->request->getBodyParams();
+            $couponCode = $body['coupon_code'];
 
-        $ruleId = $this->_coupon->loadByCode($couponCode)->getRuleId();
+            $this->logger->debug("Cupon a aplicar: {$couponCode}", [
+                'payload' => $body,
+            ]);
 
-        if(!empty($ruleId)) {
-            $quote->getShippingAddress()->setCollectShippingRates(true);
-            $quote->setCouponCode($couponCode)->collectTotals();
-            $quote->save();
+            $ruleId = $this->_coupon->loadByCode($couponCode)->getRuleId();
 
-            $order = $this->orderTokens->getBody($quote);
+            if(!empty($ruleId)) {
+                $quote->getShippingAddress()->setCollectShippingRates(true);
+                $quote->setCouponCode($couponCode)->collectTotals();
+                $quote->save();
 
-            return $this->getJson($order);
-        } else {
-            return $this->getJson([
-                'code' => 'EM-6001',
-                'message' => 'No se encontro cupón válido'
-            ], '406');
+                $this->logger->debug("Cupon aplicado");
+
+                $order = $this->orderTokens->getBody($quote);
+
+                $this->logger->debug("Response", [
+                    'data' => $order,
+                ]);
+
+                return $this->getJson($order);
+            } else {
+                $err = [
+                    'code' => 'EM-6001',
+                    'message' => 'No se encontro cupón válido',
+                    'status_code' => '406',
+                ];
+
+                $this->logger->warning("Cupon ($couponCode) no encontrado", $err);
+
+                return $this->getJson($err, $err['status_code']);
+            }
+        } catch(Exception $e) {
+            $err = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ];
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+
+            return $this->getJson($err);
         }
     }
 

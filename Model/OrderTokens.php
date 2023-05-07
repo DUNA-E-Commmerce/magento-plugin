@@ -181,7 +181,8 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         /**
-         * Comercio Dev: MAGENTO
+         * Merchant Dev: MAGENTO
+         * Used for local development
          */
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
@@ -207,7 +208,7 @@ class OrderTokens
         ];
     }
 
-        /**
+    /**
      * @param $addressId
      *
      * @return \Magento\Customer\Api\Data\AddressInterface
@@ -215,16 +216,20 @@ class OrderTokens
     public function getAddressData($addressId)
     {
         $addressData = null;
+
         try {
             $addressData = $this->addressRepository->getById($addressId);
-        } catch (\Exception $exception) {
-            $this->helper->log('debug', 'getAddressDataById', [$exception->getMessage()]);
-
+        } catch (\Exception $e) {
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ]);
         }
         return $addressData;
     }
 
-      /**
+    /**
      * @param TotalsInformationManagementInterface $subject
      * @param int                                  $cartId
      * @param TotalsInformationInterface           $addressInformation
@@ -239,7 +244,11 @@ class OrderTokens
         int $cartId,
         TotalsInformationInterface $addressInformation
     ) {
-        $this->helper->log('debug', 'Environment', ["soy el metodo AfterCalculate"]);
+        $this->logger->debug('AfterCalculate Method', [
+            'cartId' => $cartId,
+            'subject' => $subject,
+            'addressInformation' => $addressInformation,
+        ]);
 
         return null;
     }
@@ -257,14 +266,21 @@ class OrderTokens
         $headers = $this->getHeaders();
 
         if($this->getEnvironment()!=='prod') {
-            $this->logger->debug('Request debugger', [
-                'url' => $url,
-                'env' => $this->getEnvironment(),
-                'api-key' => $this->getPrivateKey(),
+            $this->logger->debug("Environment", [
+                'environment' => $this->getEnvironment(),
+                'apikey' => $this->getPrivateKey(),
+                'request' => $url,
+                'body' => $body,
             ]);
         }
 
         $configuration['header'] = false;
+
+        if($this->getEnvironment()!=='prod') {
+            $this->logger->debug('CURL Configuration sent', [
+                'config' => $configuration,
+            ]);
+        }
 
         $this->curl->setConfig($configuration);
         $this->curl->write($method, $url, $http_ver, $headers, $body);
@@ -272,23 +288,26 @@ class OrderTokens
         $response = $this->curl->read();
 
         if (!$response) {
-            $msg = 'No response from request to ' . $url;
-
-            $this->logger->notice($msg, [
-                'response' => $response,
-            ]);
-
+            $msg = "No response from request to {$url}";
+            $this->logger->warning($msg);
             throw new LocalizedException(__($msg));
         }
 
         $response = $this->json->unserialize($response);
 
+        if($this->getEnvironment()!=='prod') {
+            $this->logger->debug("Response", [
+                'data' => $response,
+            ]);
+        }
+
         if(!empty($response['error'])) {
             $error = $response['error'];
             $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
 
-            $this->logger->error($msg, [
-                'response' => $response,
+            $this->logger->debug('Error on DEUNA Token', [
+                'url' => $url,
+                'error' => $error,
             ]);
 
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
@@ -297,6 +316,10 @@ class OrderTokens
         if (!empty($response['code'])) {
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
+
+        $this->logger->debug('Token Response', [
+            'token' => $response,
+        ]);
 
         return $response;
     }
@@ -321,6 +344,7 @@ class OrderTokens
 
         $discount_amount = $this->getDiscountAmount($quote);
         $subtotal_amount = $quote->getSubtotal();
+        $subtotal_amount -= $discount_amount;
         $totals += $tax_amount;
 
         $body = [
@@ -332,7 +356,7 @@ class OrderTokens
                 'items_total_amount' => $this->priceFormat($totals),
                 'sub_total' => $this->priceFormat($subtotal_amount),
                 'total_amount' => $this->priceFormat($totals),
-                'total_discount' => $discount_amount,
+                'total_discount' => $this->priceFormat($discount_amount),
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
@@ -344,9 +368,9 @@ class OrderTokens
                         'address_coordinates' => [
                             'lat' => $lat,
                             'lng' => $long
-                        ],	'contact' => [
+                        ],
+                        'contact' => [
                             'name' => $nameStore
-
                         ],
                     ]
                 ],
@@ -361,7 +385,7 @@ class OrderTokens
             ]
         ];
 
-        return $this->getShippingData($body, $quote);
+        return $this->getShippingData($body, $quote, $stores);
     }
 
     /**
@@ -406,7 +430,7 @@ class OrderTokens
         $subTotalWithDiscount = $quote->getSubtotalWithDiscount();
         $subTotal = $quote->getSubtotal();
         $couponAmount = $subTotal - $subTotalWithDiscount;
-        return $this->priceFormat($couponAmount);
+        return $couponAmount;
     }
 
     /**
@@ -473,36 +497,61 @@ class OrderTokens
      * @param $shippingAmount
      * @return array
      */
-    private function getShippingData($order, $quote)
+    private function getShippingData($order, $quote, $storeObj)
     {
-        $shippingAddress = $quote->getShippingAddress();
-        $shippingAmount = $this->priceFormat($shippingAddress->getShippingAmount());
-        $order['order']['shipping_address'] = [
-            'id' => 0,
-            'user_id' => (string) 0,
-            'first_name' => 'N/A',
-            'last_name' => 'N/A',
-            'phone' => '8677413045',
-            'identity_document' => '',
-            'lat' => 0,
-            'lng' => 0,
-            'address_1' => '',
-            'address_2' => '',
-            'city' => 'Ciudad de México',
-            'zipcode' => '00000',
-            'state_code' => 'CDMX',
-            'state_name' => 'Ciudad de México',
-            'country_code' => 'MX',
-            'additional_description' => 'Recoger en Tienda',
-            'address_type' => 'home',
-            'is_default' => false,
-            'created_at' => '',
-            'updated_at' => '',
-        ];
-        $order['order']['status'] = 'pending';
-        $order['order']['shipping_amount'] = $shippingAmount;
-        $order['order']['sub_total'] += $shippingAmount;
-        $order['order']['total_amount'] += $shippingAmount;
+        $shippingOptions = $order['order']['shipping_options'];
+
+        if($shippingOptions['type'] === 'pickup') {
+            $order['order']['shipping_address'] = [
+                'id' => 0,
+                'user_id' => (string) 0,
+                'first_name' => 'N/A',
+                'last_name' => 'N/A',
+                'phone' => $storeObj->getPhone(),
+                'identity_document' => '-',
+                'address_1' => "Tienda: {$storeObj->getStreet()}, {$storeObj->getNumber()}",
+                'address_2' => $storeObj->getColony(),
+                'city' => ($storeObj->getTown()==='-') ? "Ciudad de México" : $storeObj->getTown(),
+                'zipcode' => $storeObj->getZipCode(),
+                'state_code' => 'CDMX',
+                'state_name' => $storeObj->getState(),
+                'country_code' => (empty($storeObj->getCountry())) ? "MX" : $storeObj->getCountry(),
+                'additional_description' => 'Recoger en tienda',
+                'address_type' => 'home',
+                'is_default' => true,
+                'lat' => (float) $storeObj->getLat(),
+                'lng' => (float) $storeObj->getLon(),
+            ];
+        } else {
+            $shippingAddress = $quote->getShippingAddress();
+            $shippingAmount = $this->priceFormat($shippingAddress->getShippingAmount());
+            $order['order']['shipping_address'] = [
+                'id' => 0,
+                'user_id' => (string) 0,
+                'first_name' => '-',
+                'last_name' => '-',
+                'phone' => '-',
+                'identity_document' => '',
+                'lat' => 0,
+                'lng' => 0,
+                'address_1' => '-',
+                'address_2' => '-',
+                'city' => '-',
+                'zipcode' => '-',
+                'state_name' => '-',
+                'country_code' => 'MX',
+                'additional_description' => '',
+                'address_type' => '',
+                'is_default' => false,
+                'created_at' => '',
+                'updated_at' => '',
+            ];
+            $order['order']['status'] = 'pending';
+            $order['order']['shipping_amount'] = $shippingAmount;
+            $order['order']['sub_total'] += $shippingAmount;
+            $order['order']['total_amount'] += $shippingAmount;
+        }
+
         return $order;
     }
 
@@ -558,29 +607,9 @@ class OrderTokens
     {
         $quote = $this->checkoutSession->getQuote();
 
-        /** IMPROVISED CODE */
-        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
-        $storeManager = $objectManager->create("\Magento\Store\Model\StoreManagerInterface");
-        $stores = $storeManager->getStores(true, false);
-
-        $this->logger->debug('Store Manager:', $stores);
-
-        foreach($stores as $store){
-            $storeName = $store->getName();
-            $this->helper->log('debug','storeName:', [ $storeName ]);
-            $this->helper->log('debug','storeID:', [ $store->getId() ]);
-        }
-        $billingAddress = $quote->getBillingAddress();
-
-        $this->helper->log('debug','billingAddress->getData:', [ $billingAddress->getData()]);
-        $this->helper->log('debug','tokenize-quote-getShippingAddress-getData:', [ $quote->getShippingAddress()->getData() ]);
-        $this->helper->log('debug','tokenize-quote-getData:', [ $quote->getData() ]);
-
         $body = $this->json->serialize($this->getBody($quote));
 
         $body = json_encode($this->getBody($quote));
-
-        $this->helper->log('debug', 'Json to Tokenize:', [$body]);
 
         return $this->request($body);
     }
@@ -591,16 +620,14 @@ class OrderTokens
      */
     public function getToken()
     {
-        $this->logger->info('Starting tokenization');
-
         try {
+            $this->logger->info('Starting tokenization');
+
             $token = $this->tokenize();
 
-            if($this->getEnvironment()!=='prod') {
-                $this->logger->debug("Token generated ({$token['token']})", [
-                    'token' => $token,
-                ]);
-            }
+            $this->logger->info("Token Generated ({$token['token']})", [
+                'token' => $token,
+            ]);
 
             return $token;
         } catch(NoSuchEntityException $e) {
