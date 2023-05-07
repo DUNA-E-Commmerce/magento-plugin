@@ -69,7 +69,7 @@ class PostManagement {
     protected $orderRepository;
 
     protected $deunaShipping;
-
+    
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -82,7 +82,7 @@ class PostManagement {
         CustomerRepositoryInterface $customerRepository,
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
-        ShippingMethods $deunaShipping
+        ShippingMethods $deunaShipping,
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -98,7 +98,6 @@ class PostManagement {
         $this->deunaShipping = $deunaShipping;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-
         $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
@@ -167,6 +166,8 @@ class PostManagement {
                 $mgOrder->save();
 
                 $output['status'] = 'saved';
+
+                $this->sendOrderId($orderId);
 
                 $this->logger->info("Pedido ({$orderId}) notificado satisfactoriamente", [
                     'data' => $output,
@@ -310,5 +311,19 @@ class PostManagement {
         ];
 
         $quote->getShippingAddress()->addData($shipping_address);
+    }
+
+    public function sendOrderId($orderId, $status = 'succeeded')
+    {
+        $body = array(
+            "status" => $status,
+            "data" => array(
+                "order_id" => $orderId
+            )
+        );
+        
+        $response = $this->orderTokens->request(json_encode($body));
+
+        return json_encode($response);
     }
 }
