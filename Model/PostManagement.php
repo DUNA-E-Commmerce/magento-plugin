@@ -232,7 +232,7 @@ class PostManagement {
 
         $quote = $this->cri->get($quoteId);
 
-        $quote->getPayment()->setMethod('deuna_payments');
+        $quote->getPayment()->setMethod('deunacheckout');
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
@@ -296,7 +296,7 @@ class PostManagement {
             $order->setState($orderState)
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
                   ->setTotalPaid($totalAmount)
-                  ->setPaymentMethod('checkmo');
+                  ->setPaymentMethod('deunacheckout');
 
             $this->logger->info("Order ({$order->getIncrementId()}) change status to PROCESSING");
         }
