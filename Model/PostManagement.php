@@ -69,7 +69,7 @@ class PostManagement {
     protected $orderRepository;
 
     protected $deunaShipping;
-    
+
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -132,8 +132,15 @@ class PostManagement {
             $output = [];
 
             if ($active) {
-                if($payment_status!='processed')
-                    return;
+                $this->logger->debug("Quote ({$quote->getId()}) is active", [
+                    'paymentStatus' => $payment_status,
+                    'paymentMethod' => $paymentMethod,
+                ]);
+
+                if($paymentMethod!='cash') {
+                    if($payment_status!='processed')
+                        return;
+                }
 
                 $mgOrder = $this->quoteManagement->submit($quote);
 
@@ -164,9 +171,14 @@ class PostManagement {
                 );
 
                 $payment = $mgOrder->getPayment();
+                $method = $payment->getMethodInstance()->getCode();
+
+                $this->logger->debug("Magento Payment method: {$method}");
+
                 $payment->setAdditionalInformation('token', $token);
+                $payment->setData('AuthCode', 'TEST');
                 $payment->save();
-                
+
                 $mgOrder->save();
 
                 $newOrderId = $mgOrder->getIncrementId();
@@ -336,7 +348,7 @@ class PostManagement {
                 "order_id" => $orderId
             )
         );
-        
+
         $response = $this->orderTokens->request(json_encode($body));
 
         return json_encode($response);

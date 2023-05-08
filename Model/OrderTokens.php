@@ -667,6 +667,8 @@ class OrderTokens
         try {
             $this->logger->info('Starting tokenization');
 
+            $this->getPaymentMethodList();
+
             $token = $this->tokenize();
 
             $this->logger->info("Token Generated ({$token['token']})", [
@@ -697,5 +699,24 @@ class OrderTokens
         return $this->helper->getEnv();
     }
 
-    
+    private function getPaymentMethodList()
+    {
+        $objectManager = ObjectManager::getInstance();
+        $scope = $objectManager->create('\Magento\Framework\App\Config\ScopeConfigInterface');
+        $methodList = $scope->getValue('payment');
+
+        $output = [];
+
+        foreach( $methodList as $code => $_method )
+        {
+            if( isset($_method['active']) && $_method['active'] == 1 ) {
+                $output[] = [
+                    'code' => $code,
+                    'method' => $_method,
+                ];
+            }
+        }
+
+        $this->logger->debug('Payment Method List', $output);
+    }
 }
