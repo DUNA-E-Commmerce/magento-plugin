@@ -138,7 +138,7 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
-        Image $imageHelper,
+        Image $imageHelper
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
