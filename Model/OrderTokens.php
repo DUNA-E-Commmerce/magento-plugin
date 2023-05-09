@@ -686,7 +686,7 @@ class OrderTokens
             $this->logger->log('ERROR','Error when get token ('.__CLASS__.'\\'.__FUNCTION__.')', array(
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
+                'trace' => $e->getTrace()
             ));
 
             return false;
@@ -699,7 +699,7 @@ class OrderTokens
             $this->logger->log('ERROR','Error when get token ('.__CLASS__.'\\'.__FUNCTION__.')', array(
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
+                'trace' => $e->getTrace()
             ));
 
             return false;
