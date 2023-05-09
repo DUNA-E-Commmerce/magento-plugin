@@ -82,7 +82,7 @@ class PostManagement {
         CustomerRepositoryInterface $customerRepository,
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
-        ShippingMethods $deunaShipping,
+        ShippingMethods $deunaShipping
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
