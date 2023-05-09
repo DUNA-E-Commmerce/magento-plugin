@@ -4,8 +4,8 @@ namespace DUna\Payments\Helper;
 
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
+// use Monolog\Logger;
+// use Logtail\Monolog\LogtailHandler;
 
 class LogtailHelper extends AbstractHelper
 {
@@ -26,47 +26,47 @@ class LogtailHelper extends AbstractHelper
     ) {
         parent::__construct($context);
         
-        $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        // $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     public function info($message, $data = [])
     {
-        $this->logger->info($message, $data);
+        // $this->logger->info($message, $data);
     }
 
     public function debug($message, $data = [])
     {
-        $this->logger->debug($message, $data);
+        // $this->logger->debug($message, $data);
     }
 
     public function error($message, $data = [])
     {
-        $this->logger->error($message, $data);
+        // $this->logger->error($message, $data);
     }
 
     public function notice($message, $data = [])
     {
-        $this->logger->notice($message, $data);
+        // $this->logger->notice($message, $data);
     }
 
     public function warn($message, $data = [])
     {
-        $this->logger->warning($message, $data);
+        // $this->logger->warning($message, $data);
     }
 
     public function critical($message, $data = [])
     {
-        $this->logger->critical($message, $data);
+        // $this->logger->critical($message, $data);
     }
 
     public function alert($message, $data = [])
     {
-        $this->logger->alert($message, $data);
+        // $this->logger->alert($message, $data);
     }
 
     public function emergency($message, $data = [])
     {
-        $this->logger->emergency($message, $data);
+        // $this->logger->emergency($message, $data);
     }
 }

@@ -15,8 +15,8 @@ use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Framework\App\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
+// use Monolog\Logger;
+// use Logtail\Monolog\LogtailHandler;
 
 class PostManagement {
 
@@ -96,9 +96,9 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
-        $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
+        // $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        // $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -110,7 +110,7 @@ class PostManagement {
             $bodyReq = $this->request->getBodyParams();
             $output = [];
 
-            $this->logger->debug('Notify Payload: ', $bodyReq);
+            // $this->logger->debug('Notify Payload: ', $bodyReq);
 
             $order = $bodyReq['order'];
             $orderId = $order['order_id'];
@@ -137,7 +137,7 @@ class PostManagement {
 
                 $mgOrder = $this->quoteManagement->submit($quote);
 
-                $this->logger->debug("Order created with status {$mgOrder->getState()}");
+                // $this->logger->debug("Order created with status {$mgOrder->getState()}");
 
                 if(!empty($userComment)) {
                     $mgOrder->addStatusHistoryComment(
@@ -171,7 +171,7 @@ class PostManagement {
 
                 $newOrderId = $mgOrder->getIncrementId();
 
-                $this->logger->debug("Order ({$newOrderId}) saved");
+                // $this->logger->debug("Order ({$newOrderId}) saved");
 
                 $output = [
                     'status' => $order['status'],
@@ -180,9 +180,9 @@ class PostManagement {
                     ]
                 ];
 
-                $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
-                    'response' => $output,
-                ]);
+                // $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
+                //     'response' => $output,
+                // ]);
 
                 echo json_encode($output);
 
@@ -190,9 +190,9 @@ class PostManagement {
             } else {
                 $output['status'] = $order['status'];
 
-                $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
-                    'data' => $output,
-                ]);
+                // $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
+                //     'data' => $output,
+                // ]);
 
                 return json_encode($output);
             }
@@ -203,7 +203,7 @@ class PostManagement {
                 'trace' => $e->getTrace(),
             ];
 
-            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+            // $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
 
             return json_encode($err);
         }
@@ -286,7 +286,7 @@ class PostManagement {
                   ->setTotalPaid($totalAmount)
                   ->setPaymentMethod('checkmo');
 
-            $this->logger->info("Order ({$order->getIncrementId()}) change status to PROCESSING");
+            // $this->logger->info("Order ({$order->getIncrementId()}) change status to PROCESSING");
         }
     }
 

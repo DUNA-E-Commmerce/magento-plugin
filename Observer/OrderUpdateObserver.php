@@ -3,8 +3,8 @@
 namespace DUna\Payments\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
+// use Monolog\Logger;
+// use Logtail\Monolog\LogtailHandler;
 
 class OrderUpdateObserver implements ObserverInterface
 {
@@ -14,8 +14,8 @@ class OrderUpdateObserver implements ObserverInterface
     protected $logger;
     
     public function __construct() {
-        $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        // $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -35,24 +35,24 @@ class OrderUpdateObserver implements ObserverInterface
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
             
-            $this->logger->debug('Cancel Order', [
-                'orderId' => $orderId,
-                'orderToken' => $orderToken,
-            ]);
+            // $this->logger->debug('Cancel Order', [
+            //     'orderId' => $orderId,
+            //     'orderToken' => $orderToken,
+            // ]);
 
             try {
                 $resp = $this->cancelOrder($orderToken);
-                $this->logger->debug("Order {$orderId} has been canceled successfully", [
-                    'orderId' => $orderId,
-                    'orderToken' => $orderToken,
-                    'response' => $resp,
-                ]);
+                // $this->logger->debug("Order {$orderId} has been canceled successfully", [
+                //     'orderId' => $orderId,
+                //     'orderToken' => $orderToken,
+                //     'response' => $resp,
+                // ]);
             } catch (\Exception $e) {
-                $this->logger->critical("Error canceling order ID: {$orderId}", [
-                    'message' => $e->getMessage(),
-                    'code' => $e->getCode(),
-                    'trace' => $e->getTrace(),
-                ]);
+                // $this->logger->critical("Error canceling order ID: {$orderId}", [
+                //     'message' => $e->getMessage(),
+                //     'code' => $e->getCode(),
+                //     'trace' => $e->getTrace(),
+                // ]);
             }
         }
     }

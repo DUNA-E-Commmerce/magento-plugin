@@ -25,8 +25,8 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Catalog\Helper\Image;
 use Magento\Framework\App\ObjectManager;
 use Magento\Catalog\Api\ProductRepositoryInterface;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
+// use Monolog\Logger;
+// use Logtail\Monolog\LogtailHandler;
 
 class OrderTokens
 {
@@ -158,9 +158,9 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
-        $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
+        // $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        // $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
         $this->imageHelper = $imageHelper;
     }
 
@@ -233,15 +233,15 @@ class OrderTokens
         try {
             return $this->addressRepository->getById($addressId);
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $this->logger->error('Could not find address with ID ' . $addressId);
+            // $this->logger->error('Could not find address with ID ' . $addressId);
 
             return null;
         } catch (\Exception $e) {
-            $this->logger->error('An error occurred while retrieving address with ID ' . $addressId, [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
-            ]);
+            // $this->logger->error('An error occurred while retrieving address with ID ' . $addressId, [
+            //     'message' => $e->getMessage(),
+            //     'code' => $e->getCode(),
+            //     'trace' => $e->getTrace(),
+            // ]);
 
             return null;
         }
@@ -262,11 +262,11 @@ class OrderTokens
         int $cartId,
         TotalsInformationInterface $addressInformation
     ) {
-        $this->logger->debug('AfterCalculate Method', [
-            'cartId' => $cartId,
-            'subject' => $subject,
-            'addressInformation' => $addressInformation,
-        ]);
+        // $this->logger->debug('AfterCalculate Method', [
+        //     'cartId' => $cartId,
+        //     'subject' => $subject,
+        //     'addressInformation' => $addressInformation,
+        // ]);
 
         return null;
     }
@@ -284,20 +284,20 @@ class OrderTokens
         $headers = $this->getHeaders();
 
         if($this->getEnvironment()!=='prod') {
-            $this->logger->debug("Environment", [
-                'environment' => $this->getEnvironment(),
-                'apikey' => $this->getPrivateKey(),
-                'request' => $url,
-                'body' => $body,
-            ]);
+            // $this->logger->debug("Environment", [
+            //     'environment' => $this->getEnvironment(),
+            //     'apikey' => $this->getPrivateKey(),
+            //     'request' => $url,
+            //     'body' => $body,
+            // ]);
         }
 
         $configuration['header'] = false;
 
         if($this->getEnvironment()!=='prod') {
-            $this->logger->debug('CURL Configuration sent', [
-                'config' => $configuration,
-            ]);
+            // $this->logger->debug('CURL Configuration sent', [
+            //     'config' => $configuration,
+            // ]);
         }
 
         $this->curl->setConfig($configuration);
@@ -307,26 +307,26 @@ class OrderTokens
 
         if (!$response) {
             $msg = "No response from request to {$url}";
-            $this->logger->warning($msg);
+            // $this->logger->warning($msg);
             throw new LocalizedException(__($msg));
         }
 
         $response = $this->json->unserialize($response);
 
         if($this->getEnvironment()!=='prod') {
-            $this->logger->debug("Response", [
-                'data' => $response,
-            ]);
+            // $this->logger->debug("Response", [
+            //     'data' => $response,
+            // ]);
         }
 
         if(!empty($response['error'])) {
             $error = $response['error'];
             $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
 
-            $this->logger->debug('Error on DEUNA Token', [
-                'url' => $url,
-                'error' => $error,
-            ]);
+            // $this->logger->debug('Error on DEUNA Token', [
+            //     'url' => $url,
+            //     'error' => $error,
+            // ]);
 
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
         }
@@ -335,9 +335,9 @@ class OrderTokens
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
 
-        $this->logger->debug('Token Response', [
-            'token' => $response,
-        ]);
+        // $this->logger->debug('Token Response', [
+        //     'token' => $response,
+        // ]);
 
         return $response;
     }
@@ -665,29 +665,29 @@ class OrderTokens
     public function getToken()
     {
         try {
-            $this->logger->info('Starting tokenization');
+            // $this->logger->info('Starting tokenization');
 
             $token = $this->tokenize();
 
-            $this->logger->info("Token Generated ({$token['token']})", [
-                'token' => $token,
-            ]);
+            // $this->logger->info("Token Generated ({$token['token']})", [
+            //     'token' => $token,
+            // ]);
 
             return $token;
         } catch(NoSuchEntityException $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
-            ]);
+            // $this->logger->error('Critical error in '.__FUNCTION__, [
+            //     'message' => $e->getMessage(),
+            //     'code' => $e->getCode(),
+            //     'trace' => $e->getTrace(),
+            // ]);
 
             return false;
         } catch(Exception $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
-            ]);
+            // $this->logger->error('Critical error in '.__FUNCTION__, [
+            //     'message' => $e->getMessage(),
+            //     'code' => $e->getCode(),
+            //     'trace' => $e->getTrace(),
+            // ]);
 
             return false;
         }

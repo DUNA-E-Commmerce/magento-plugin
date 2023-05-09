@@ -14,8 +14,8 @@ use Exception;
 use Magento\Framework\Exception\StateException;
 use Magento\SalesRule\Model\Coupon;
 use Magento\SalesRule\Model\Rule;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
+// use Monolog\Logger;
+// use Logtail\Monolog\LogtailHandler;
 
 class Checkout implements CheckoutInterface
 {
@@ -114,8 +114,8 @@ class Checkout implements CheckoutInterface
         $this->request = $request;
         $this->json = $json;
         $this->orderTokens = $orderTokens;
-        $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        // $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
@@ -126,7 +126,7 @@ class Checkout implements CheckoutInterface
     public function applycoupon(int $cartId)
     {
         try {
-            $this->logger->debug('Aplicando Coupon');
+            // $this->logger->debug('Aplicando Coupon');
             $quote = $this->quoteRepository->getActive($cartId);
 
             $body = $this->request->getBodyParams();
@@ -135,9 +135,9 @@ class Checkout implements CheckoutInterface
             $originalSubtotalAmount = $quote->getSubtotal();
             $originalSubtotalAmountWithDiscount = $quote->getSubtotalWithDiscount();
 
-            $this->logger->debug("Cupon a aplicar: {$couponCode}", [
-                'payload' => $body,
-            ]);
+            // $this->logger->debug("Cupon a aplicar: {$couponCode}", [
+            //     'payload' => $body,
+            // ]);
 
             $ruleId = $this->_coupon->loadByCode($couponCode)->getRuleId();
 
@@ -167,12 +167,12 @@ class Checkout implements CheckoutInterface
                     ],
                 ];
 
-                $this->logger->debug("Cupon aplicado", [
-                    'data' => $discountData,
-                    'discount_type' => $rule->getCouponType(),
-                    'subtotal' => $quote->getSubtotal(),
-                    'subtotalWithDiscount' => $quote->getSubtotalWithDiscount(),
-                ]);
+                // $this->logger->debug("Cupon aplicado", [
+                //     'data' => $discountData,
+                //     'discount_type' => $rule->getCouponType(),
+                //     'subtotal' => $quote->getSubtotal(),
+                //     'subtotalWithDiscount' => $quote->getSubtotalWithDiscount(),
+                // ]);
 
                 $order = $this->orderTokens->getBody($quote);
 
@@ -181,14 +181,14 @@ class Checkout implements CheckoutInterface
                 $newSubtotalAmount = $quote->getSubtotal();
                 $newSubtotalAmountWithDiscount = $quote->getSubtotalWithDiscount();
 
-                $this->logger->debug("Response", [
-                    'data' => $order,
-                    'couponsApplied' => $quote->getAppliedRuleIds(),
-                    'originalSubtotalAmount' => $originalSubtotalAmount,
-                    'newSubtotalAmount' => $newSubtotalAmount,
-                    'originalSubtotalAmountWithDiscount' => $originalSubtotalAmountWithDiscount,
-                    'newSubtotalAmountWithDiscount' => $newSubtotalAmountWithDiscount,
-                ]);
+                // $this->logger->debug("Response", [
+                //     'data' => $order,
+                //     'couponsApplied' => $quote->getAppliedRuleIds(),
+                //     'originalSubtotalAmount' => $originalSubtotalAmount,
+                //     'newSubtotalAmount' => $newSubtotalAmount,
+                //     'originalSubtotalAmountWithDiscount' => $originalSubtotalAmountWithDiscount,
+                //     'newSubtotalAmountWithDiscount' => $newSubtotalAmountWithDiscount,
+                // ]);
 
                 if($newSubtotalAmountWithDiscount==$originalSubtotalAmountWithDiscount) {
                     $err = [
@@ -197,7 +197,7 @@ class Checkout implements CheckoutInterface
                         'status_code' => '406',
                     ];
     
-                    $this->logger->warning("Cupon ({$couponCode}) inválido", $err);
+                    // $this->logger->warning("Cupon ({$couponCode}) inválido", $err);
     
                     return $this->getJson($err, $err['status_code']);
                 }
@@ -210,7 +210,7 @@ class Checkout implements CheckoutInterface
                     'status_code' => '406',
                 ];
 
-                $this->logger->warning("Cupon ($couponCode) no encontrado", $err);
+                // $this->logger->warning("Cupon ($couponCode) no encontrado", $err);
 
                 return $this->getJson($err, $err['status_code']);
             }
@@ -220,7 +220,7 @@ class Checkout implements CheckoutInterface
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
             ];
-            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+            // $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
 
             return $this->getJson($err);
         }

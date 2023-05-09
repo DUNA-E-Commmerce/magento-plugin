@@ -27,7 +27,7 @@ class Data extends AbstractHelper
         Logger $logger
     ) {
         parent::__construct($context);
-        $this->logger = $logger;
+        // $this->logger = $logger;
     }
 
     /**
@@ -95,6 +95,6 @@ class Data extends AbstractHelper
      * @return void
      */
     public function log($type, $message, array $context = []) {
-        $this->logger->{$type}($message, $context);
+        // $this->logger->{$type}($message, $context);
     }
 }

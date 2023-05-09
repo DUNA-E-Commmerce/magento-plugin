@@ -6,8 +6,8 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\HTTP\Adapter\Curl;
-use Monolog\Logger;
-use Logtail\Monolog\LogtailHandler;
+// use Monolog\Logger;
+// use Logtail\Monolog\LogtailHandler;
 use DUna\Payments\Helper\Data;
 use Zend_Http_Client;
 
@@ -60,8 +60,8 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
         $this->helper = $helper;
         $this->encryptor = $encryptor;
         $this->json = $json;
-        $this->logger = new Logger(self::LOGTAIL_SOURCE);
-        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        // $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
@@ -98,20 +98,20 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
             $headers = $this->getHeaders();
 
             if ($this->getEnvironment() !== 'prod') {
-                $this->logger->debug("Environment", [
-                    'environment' => $this->getEnvironment(),
-                    'apikey' => $this->getPrivateKey(),
-                    'request' => $url,
-                    'body' => $body,
-                ]);
+                // $this->logger->debug("Environment", [
+                //     'environment' => $this->getEnvironment(),
+                //     'apikey' => $this->getPrivateKey(),
+                //     'request' => $url,
+                //     'body' => $body,
+                // ]);
             }
 
             $configuration['header'] = $headers;
 
             if ($this->getEnvironment() !== 'prod') {
-                $this->logger->debug('CURL Configuration sent', [
-                    'config' => $configuration,
-                ]);
+                // $this->logger->debug('CURL Configuration sent', [
+                //     'config' => $configuration,
+                // ]);
             }
 
             $this->curl->setConfig($configuration);
@@ -119,19 +119,19 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 
             $response = $this->curl->read();
 
-            $this->logger->debug('CURL Response', [
-                'response' => [
-                    'body' => $response,
-                ],
-            ]);
+            // $this->logger->debug('CURL Response', [
+            //     'response' => [
+            //         'body' => $response,
+            //     ],
+            // ]);
 
             return $response;
         } catch (\Exception $e) {
-            $this->logger->critical('Error on request cancellation', [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
-            ]);
+            // $this->logger->critical('Error on request cancellation', [
+            //     'message' => $e->getMessage(),
+            //     'code' => $e->getCode(),
+            //     'trace' => $e->getTrace(),
+            // ]);
         }
 
     }
