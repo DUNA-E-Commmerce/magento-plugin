@@ -53,7 +53,7 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
         Json $json,
         Curl $curl,
         Data $helper,
-        EncryptorInterface $encryptor,
+        EncryptorInterface $encryptor
     ) {
         parent::__construct($context);
         $this->curl = $curl;
