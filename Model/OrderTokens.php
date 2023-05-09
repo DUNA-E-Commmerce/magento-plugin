@@ -27,6 +27,7 @@ use Magento\Framework\App\ObjectManager;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 // use Monolog\Logger;
 // use Logtail\Monolog\LogtailHandler;
+use Psr\Log\LoggerInterface;
 
 class OrderTokens
 {
@@ -138,7 +139,8 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
-        Image $imageHelper
+        Image $imageHelper,
+        LoggerInterface $logger
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -162,6 +164,7 @@ class OrderTokens
         // $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
         // $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
         $this->imageHelper = $imageHelper;
+        $this->logger = $logger;
     }
 
     /**
@@ -680,6 +683,11 @@ class OrderTokens
             //     'code' => $e->getCode(),
             //     'trace' => $e->getTrace(),
             // ]);
+            $this->logger->log('ERROR','Error when get token ('.__CLASS__.'\\'.__FUNCTION__.')', array(
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ));
 
             return false;
         } catch(Exception $e) {
@@ -688,6 +696,11 @@ class OrderTokens
             //     'code' => $e->getCode(),
             //     'trace' => $e->getTrace(),
             // ]);
+            $this->logger->log('ERROR','Error when get token ('.__CLASS__.'\\'.__FUNCTION__.')', array(
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ));
 
             return false;
         }
