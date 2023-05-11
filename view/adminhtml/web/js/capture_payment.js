@@ -7,20 +7,17 @@ require(['jquery'], function($) {
             console.log('orderId: ' + orderId);
 
             $.ajax({
-                url: '/duna_payments/set/capturepayment',
-                type: 'POST',
+                url: '/rest/V1/DUna/capture/' + orderId,
+                type: 'GET',
                 dataType: 'json',
-                data: {
-                    order_id: orderId,
-                },
-                success: function (data) {
+                success: function(data) {
                     if (data.success) {
                         alert('Payment captured successfully.');
                     } else {
                         alert('Could not capture payment.');
                     }
                 },
-                error: function () {
+                error: function() {
                     alert('An error occurred while capturing the payment.');
                 }
             });

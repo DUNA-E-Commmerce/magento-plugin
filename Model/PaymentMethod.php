@@ -7,6 +7,8 @@ namespace DUna\Payments\Model;
  */
 class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 {
+    const REQUEST_TYPE_CAPTURE = 'DEUNA_CAPTURE';
+
     /**
      * Payment code
      *
@@ -59,11 +61,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        // Check if payment can be captured
-        if (!$this->canCapture()) {
-            throw new \Magento\Framework\Exception\LocalizedException(__('The capture action is not available.'));
-        }
-
         // Get order
         $order = $payment->getOrder();
 
@@ -71,17 +68,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $methodInstance = $payment->getMethodInstance();
 
         // Get authorization transaction ID
-        $authTransactionId = $payment->getParentTransactionId();
+        $authTransactionId = $payment->getTransactionId();
 
         // If no authorization transaction ID, then it is a direct capture
         if (!$authTransactionId) {
             // Authorize and capture payment
+
             $result = $this->authorizeCapturePayment($order, $payment, $methodInstance, $amount);
 
+
             // Check if result is successful
-            if ($result->getSuccess()) {
+            if ($result) {
+            var_dump($result->debug());die();
+
                 // Set transaction ID and transaction type
-                $payment->setTransactionId($result->getTransactionId());
+                $payment->setTransactionId($payment->getTransactionId());
+
+
                 $payment->setTransactionType(self::REQUEST_TYPE_CAPTURE);
 
                 // Save payment and transaction
@@ -92,17 +95,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             }
         } else { // Otherwise, it is a delayed capture
             // Capture payment
+            var_dump('2');die();
+
             $result = $this->capturePayment($order, $payment, $methodInstance, $authTransactionId, $amount);
 
             // Check if result is successful
             if ($result->getSuccess()) {
                 // Set transaction ID and transaction type
-                $payment->setTransactionId($result->getTransactionId());
+                $payment->setTransactionId($payment->getTransactionId());
                 $payment->setTransactionType(self::REQUEST_TYPE_CAPTURE);
-
                 // Save payment and transaction
                 $payment->save();
-                $this->_saveTransaction($payment, $result->getTransactionId(), self::REQUEST_TYPE_CAPTURE);
+                $this->_saveTransaction($payment, $payment->getTransactionId(), self::REQUEST_TYPE_CAPTURE);
             } else {
                 throw new \Magento\Framework\Exception\LocalizedException(__('The capture action is not available.'));
             }
@@ -123,14 +127,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected function authorizeCapturePayment($order, $payment, $methodInstance, $amount)
     {
-        $payment->setTransactionId($this->generateTransactionId());
+        $payment->setTransactionId($this->generateTransactionId($payment));
         $payment->setIsTransactionClosed(0);
 
         // Perform authorization
-        $this->authorizePayment($order, $payment, $methodInstance, $amount);
+        $this->authorizePayment($payment, $amount);
 
         // Capture the authorized amount
         try {
+
             $this->captureAuthorizedAmount($order, $payment, $methodInstance, $amount);
         } catch (\Exception $e) {
             $this->voidAuthorization($payment, $methodInstance, $e->getMessage());
@@ -152,7 +157,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected function captureAuthorizedAmount($order, $payment, $methodInstance, $amount)
     {
-        if (!$payment->getParentTransactionId()) {
+
+        if (!$payment->getTransactionId()) {
             throw new \Magento\Framework\Exception\LocalizedException(__('Invalid transaction id.'));
         }
 
@@ -160,25 +166,69 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             ->setCurrencyCode($order->getBaseCurrencyCode());
 
         $request = $this->_buildBasicRequest($payment);
-        $request->setTransactionId($payment->getParentTransactionId());
-        $request->setAmount($amount);
-        $request->setIsFinalCapture(true);
 
-        // Send the capture request to the payment gateway
-        $response = $methodInstance->capture($request);
-
-        if ($response->isSuccessful()) {
-            // Payment was successfully captured
-            $payment->setTransactionId($response->getTransactionReference());
-            $payment->setIsTransactionClosed(1);
-            $payment->capture();
-        } else {
-            // Capture request failed
-            throw new \Magento\Framework\Exception\LocalizedException(
-                __('Payment capture error.') . ' ' . $response->getMessage()
-            );
-        }
-
-        return $this;
+        return $request;
     }
+
+    /**
+     * Generate a transaction ID for a payment.
+     *
+     * @param Payment $payment
+     * @return string
+     */
+    function generateTransactionId($payment)
+    {
+        $orderId = $payment->getOrder()->getId();
+        $incrementId = $payment->getOrder()->getIncrementId();
+        $transactionId = $orderId . '-' . time() . '-' . $incrementId;
+        
+        return $transactionId;
+    }
+
+    /**
+     * Authorize a payment.
+     *
+     * @param Payment $payment
+     * @param float $amount
+     * @return bool
+     */
+    function authorizePayment($payment, $amount)
+    {
+        try {
+            $payment->authorize(true, $amount);
+            $payment->setTransactionId($this->generateTransactionId($payment));
+            $payment->setIsTransactionClosed(0);
+            $payment->addTransaction('authorize', null, false);
+            $payment->setParentTransactionId(null);
+            $payment->save();
+            
+            return true;
+        } catch (\Exception $e) {
+            // Handle the exception or log the error message
+            return false;
+        }
+    }
+
+    /**
+     * Build a basic request.
+     *
+     * @param \Magento\Sales\Model\Order\Payment $payment
+     * @return array
+     */
+    protected function _buildBasicRequest($payment)
+    {
+        // Build the basic request object
+        $request = new \Magento\Framework\DataObject();
+
+        // Set the transaction ID
+        $transactionId = $this->generateTransactionId($payment);
+        $request->setTransactionId($transactionId);
+
+        // Set other request parameters
+        // ...
+
+        return $request;
+    }
+
+
 }
