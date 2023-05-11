@@ -81,6 +81,9 @@ class Data extends AbstractHelper
             case str_contains($domain, 'stg.'):
                 return 'staging';
                 break;
+            case str_contains($domain, 'mcstaging.'):
+                return 'staging';
+                break;
             default:
                 return 'production';
                 break;
