@@ -2,6 +2,9 @@
 
 namespace DUna\Payments\Model;
 
+use Magento\Framework\App\ObjectManager;
+use Magento\Sales\Model\Order\Payment\Transaction;
+
 /**
  * DEUNA Checkout payment method model
  */
@@ -76,10 +79,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $result = $this->authorizeCapturePayment($order, $payment, $methodInstance, $amount);
 
-
             // Check if result is successful
             if ($result) {
-            var_dump($result->debug());die();
 
                 // Set transaction ID and transaction type
                 $payment->setTransactionId($payment->getTransactionId());
@@ -89,7 +90,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
                 // Save payment and transaction
                 $payment->save();
-                $this->_saveTransaction($payment, $result->getTransactionId(), self::REQUEST_TYPE_CAPTURE);
+              
+                $this->_saveTransaction($payment, $payment->getTransactionId());
             } else {
                 throw new \Magento\Framework\Exception\LocalizedException(__('The capture action is not available.'));
             }
@@ -165,9 +167,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $payment->setAmount($amount)
             ->setCurrencyCode($order->getBaseCurrencyCode());
 
-        $request = $this->_buildBasicRequest($payment);
+        $this->_buildBasicRequest($payment);
 
-        return $request;
+        return $this;
     }
 
     /**
@@ -228,6 +230,38 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         // ...
 
         return $request;
+    }
+
+    /**
+     * Save the transaction.
+     *
+     * @param \Magento\Sales\Model\Order\Payment $payment
+     * @param string $transactionId
+     */
+    protected function _saveTransaction($payment, $transactionId)
+    {
+       // var_dump($transactionId);die();
+
+        // Example implementation:
+        $payment->setTransactionId($transactionId)
+            ->setParentTransactionId(null)
+            ->setIsTransactionClosed(1);
+
+
+        $objectManager = ObjectManager::getInstance();
+        $_transactionBuilder = $objectManager->create(\Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface::class);
+
+        $transaction = $_transactionBuilder
+            ->setPayment($payment)
+            ->setOrder($payment->getOrder())
+            ->setTransactionId($transactionId)
+            ->build(Transaction::TYPE_AUTH);
+
+        $transaction->setIsClosed(0);
+        $transaction->save();
+
+
+        var_dump($transaction->debug());die();
     }
 
 
