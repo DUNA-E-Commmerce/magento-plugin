@@ -22,6 +22,9 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
 use Entrepids\StoresLocator\Model\StoresFactory;
+use Magento\Catalog\Helper\Image;
+use Magento\Framework\App\ObjectManager;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -115,6 +118,11 @@ class OrderTokens
      */
     private $logger;
 
+    /**
+     * @var Image
+     */
+    protected $imageHelper;
+
     public function __construct(
         Session $checkoutSession,
         Curl $curl,
@@ -134,6 +142,7 @@ class OrderTokens
         QuoteIdMaskFactory $quoteIdMaskFactory,
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
+        Image $imageHelper,
         StoresFactory $stores
     ) {
         $this->checkoutSession = $checkoutSession;
@@ -154,9 +163,12 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
+        $this->imageHelper = $imageHelper;
         $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+
+        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -187,7 +199,8 @@ class OrderTokens
         $env = $this->getEnvironment();
 
         /**
-         * Comercio Dev: MAGENTO
+         * Merchant Dev: MAGENTO
+         * Used for local development
          */
         $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
 
@@ -213,7 +226,7 @@ class OrderTokens
         ];
     }
 
-        /**
+    /**
      * @param $addressId
      *
      * @return \Magento\Customer\Api\Data\AddressInterface
@@ -221,16 +234,20 @@ class OrderTokens
     public function getAddressData($addressId)
     {
         $addressData = null;
+
         try {
             $addressData = $this->addressRepository->getById($addressId);
-        } catch (\Exception $exception) {
-            $this->helper->log('debug', 'getAddressDataById', [$exception->getMessage()]);
-
+        } catch (\Exception $e) {
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ]);
         }
         return $addressData;
     }
 
-      /**
+    /**
      * @param TotalsInformationManagementInterface $subject
      * @param int                                  $cartId
      * @param TotalsInformationInterface           $addressInformation
@@ -245,7 +262,11 @@ class OrderTokens
         int $cartId,
         TotalsInformationInterface $addressInformation
     ) {
-        $this->helper->log('debug', 'Environment', ["soy el metodo AfterCalculate"]);
+        $this->logger->debug('AfterCalculate Method', [
+            'cartId' => $cartId,
+            'subject' => $subject,
+            'addressInformation' => $addressInformation,
+        ]);
 
         return null;
     }
@@ -255,7 +276,7 @@ class OrderTokens
      * @return mixed
      * @throws LocalizedException
      */
-    private function request($body)
+    public function request($body)
     {
         $method = Zend_Http_Client::POST;
         $url = $this->getUrl();
@@ -263,10 +284,6 @@ class OrderTokens
         $headers = $this->getHeaders();
 
         if($this->getEnvironment()!=='prod') {
-            $this->helper->log('debug', 'Environment', [$this->getEnvironment()]);
-            $this->helper->log('debug', 'URL Requested', [$url]);
-            $this->helper->log('debug', 'API-KEY', [$this->getPrivateKey()]);
-
             $this->logger->debug("Environment", [
                 'environment' => $this->getEnvironment(),
                 'apikey' => $this->getPrivateKey(),
@@ -277,27 +294,38 @@ class OrderTokens
 
         $configuration['header'] = false;
 
+        if($this->getEnvironment()!=='prod') {
+            $this->logger->debug('CURL Configuration sent', [
+                'config' => $configuration,
+            ]);
+        }
+
         $this->curl->setConfig($configuration);
         $this->curl->write($method, $url, $http_ver, $headers, $body);
 
         $response = $this->curl->read();
 
         if (!$response) {
-            throw new LocalizedException(__('No response from request to ' . $url));
+            $msg = "No response from request to {$url}";
+            $this->logger->warning($msg);
+            throw new LocalizedException(__($msg));
         }
 
         $response = $this->json->unserialize($response);
 
         if($this->getEnvironment()!=='prod') {
-            $this->logger->debug("Request response", [
-                'response' => $response,
+            $this->logger->debug("Response", [
+                'data' => $response,
             ]);
         }
 
         if(!empty($response['error'])) {
             $error = $response['error'];
 
-            $this->helper->log('debug', 'Error on DEUNA Token', [$error]);
+            $this->logger->debug('Error on DEUNA Token', [
+                'url' => $url,
+                'error' => $error,
+            ]);
 
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
         }
@@ -306,7 +334,9 @@ class OrderTokens
             throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
         }
 
-        $this->helper->log('debug','Token Response', [$response]);
+        $this->logger->debug('Token Response', [
+            'token' => $response,
+        ]);
 
         return $response;
     }
@@ -348,14 +378,17 @@ class OrderTokens
             $this->logger->info('BB&B / Pickup was selected');
 
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
-            $nameStore =  $this->replace_null( $stores->getName(),"información no disponible");
-            $addressStore = $this->replace_null( $stores->getStreet()." ".$stores->getNumber(),"información no disponible");
-            $lat = $this->replace_null( $stores->getLat(),0);
-            $long = $this->replace_null( $stores->getLon(),0);
+            $nameStore =  $this->replace_null($stores->getName(),"información no disponible");
+            $addressStore = $this->replace_null($stores->getStreet()." ".$stores->getNumber(),"información no disponible");
+            $lat = $this->replace_null($stores->getLat(),0);
+            $long = $this->replace_null($stores->getLon(),0);
 
             $shippingMethodSelected = "pickup";
         }
 
+        $discount_amount = $this->getDiscountAmount($quote);
+        $subtotal_amount = $quote->getSubtotal();
+        $subtotal_amount -= $discount_amount;
         $totals += $tax_amount;
 
         $body = [
@@ -363,10 +396,11 @@ class OrderTokens
                 'order_id' => $quote->getId(),
                 'currency' => $quote->getCurrency()->getQuoteCurrencyCode(),
                 'tax_amount' => $this->priceFormat($tax_amount),
+                'total_tax_amount' => $this->priceFormat($tax_amount),
                 'items_total_amount' => $this->priceFormat($totals),
-                'sub_total' => $this->priceFormat($quote->getSubtotal()),
+                'sub_total' => $this->priceFormat($subtotal_amount),
                 'total_amount' => $this->priceFormat($totals),
-                'total_discount' => $this->getDiscountAmount($quote),
+                'total_discount' => $this->priceFormat($discount_amount),
                 'store_code' => 'all', //$this->storeManager->getStore()->getCode(),
                 'items' => $this->getItems($quote),
                 'discounts' => $discounts ? [$discounts] : [],
@@ -440,7 +474,7 @@ class OrderTokens
         $subTotalWithDiscount = $quote->getSubtotalWithDiscount();
         $subTotal = $quote->getSubtotal();
         $couponAmount = $subTotal - $subTotalWithDiscount;
-        return $this->priceFormat($couponAmount);
+        return $couponAmount;
     }
 
     /**
@@ -515,23 +549,22 @@ class OrderTokens
             $order['order']['shipping_address'] = [
                 'id' => 0,
                 'user_id' => (string) 0,
-                'first_name' => $storeObj->getName(),
-                'last_name' => '',
+                'first_name' => 'N/A',
+                'last_name' => 'N/A',
                 'phone' => $storeObj->getPhone(),
-                'identity_document' => '',
-                'lat' => 0,
-                'lng' => 0,
-                'address_1' => $storeObj->getStreet().', '.$storeObj->getNumber(),
+                'identity_document' => '-',
+                'address_1' => "Tienda: {$storeObj->getStreet()}, {$storeObj->getNumber()}",
                 'address_2' => $storeObj->getColony(),
-                'city' => $storeObj->getTown(),
+                'city' => ($storeObj->getTown()==='-') ? "Ciudad de México" : $storeObj->getTown(),
                 'zipcode' => $storeObj->getZipCode(),
+                'state_code' => 'CDMX',
                 'state_name' => $storeObj->getState(),
-                'country_code' => $storeObj->getCountry(),
+                'country_code' => (empty($storeObj->getCountry())) ? "MX" : $storeObj->getCountry(),
                 'additional_description' => 'Recoger en tienda',
-                'address_type' => 'work',
-                'is_default' => false,
-                'created_at' => '',
-                'updated_at' => '',
+                'address_type' => 'home',
+                'is_default' => true,
+                'lat' => (float) $storeObj->getLat(),
+                'lng' => (float) $storeObj->getLon(),
             ];
         } else {
             $shippingAddress = $quote->getShippingAddress();
@@ -539,17 +572,17 @@ class OrderTokens
             $order['order']['shipping_address'] = [
                 'id' => 0,
                 'user_id' => (string) 0,
-                'first_name' => 'test',
-                'last_name' => 'test',
-                'phone' => '8677413045',
+                'first_name' => '-',
+                'last_name' => '-',
+                'phone' => '-',
                 'identity_document' => '',
                 'lat' => 0,
                 'lng' => 0,
-                'address_1' => 'test',
-                'address_2' => 'test',
-                'city' => 'test',
-                'zipcode' => 'test',
-                'state_name' => 'test',
+                'address_1' => '-',
+                'address_2' => '-',
+                'city' => '-',
+                'zipcode' => '-',
+                'state_name' => '-',
                 'country_code' => 'MX',
                 'additional_description' => '',
                 'address_type' => '',
@@ -559,6 +592,7 @@ class OrderTokens
             ];
             $order['order']['status'] = 'pending';
             $order['order']['shipping_amount'] = $shippingAmount;
+            $order['order']['sub_total'] += $shippingAmount;
             $order['order']['total_amount'] += $shippingAmount;
         }
 
@@ -591,9 +625,19 @@ class OrderTokens
      */
     private function getImageUrl($item): string
     {
-        $mediaUrl = $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
-        $thumbnail = $item->getProduct()->getThumbnail();
-        return $mediaUrl . 'catalog/product' . $thumbnail;
+        $productRepository = ObjectManager::getInstance()->get(ProductRepositoryInterface::class);
+        $product = $productRepository->get($item->getProduct()->getSku());
+
+        $image = $product->getMediaGalleryImages()->getFirstItem();
+
+        if ($image->getMediaType() === 'image') {
+            return $this->imageHelper
+                ->init($product, 'product_page_image_small')
+                ->setImageFile($image->getFile())
+                ->getUrl();
+        }
+
+        return $this->imageHelper->init($product, 'product_page_image_small')->getUrl();
     }
 
     /**
@@ -644,8 +688,7 @@ class OrderTokens
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
             ]);
 
             return false;
@@ -653,8 +696,7 @@ class OrderTokens
             $this->logger->error('Critical error in '.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
             ]);
 
             return false;
@@ -664,4 +706,6 @@ class OrderTokens
     public function getEnvironment() {
         return $this->helper->getEnv();
     }
+
+    
 }
