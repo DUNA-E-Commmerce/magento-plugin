@@ -2,13 +2,14 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../Store/etc/config.xsd">
     <default>
         <payment>
-            <deunacheckout>
-                <payment_action>authorize_capture</payment_action> <!-- You can use another method -->
+            <deunacheckout_cc>
                 <model>DUna\Payments\Model\PaymentMethod</model>
                 <active>1</active>
                 <title>DEUNA Checkout</title>
-                <order_status>pending_payment</order_status>
-            </deunacheckout>
+                <order_status>pending</order_status>
+                <group>deunacheckout</group>
+                <is_gateway>1</is_gateway>
+            </deunacheckout_cc>
         </payment>
     </default>
 </config>

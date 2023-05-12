@@ -33,7 +33,7 @@ class OrderTokens
 
     const URL_PRODUCTION = 'https://apigw.getduna.com/merchants/orders';
     const URL_STAGING = 'https://api.stg.deuna.io/merchants/orders';
-    const URL_DEVELOPMENT = 'https://api.dev.deuna.io/merchants/orders';
+    const URL_DEVELOPMENT = 'https://api.stg.deuna.io/merchants/orders';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
@@ -194,7 +194,7 @@ class OrderTokens
          * Merchant Dev: MAGENTO
          * Used for local development
          */
-        $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
+        $devPrivateKey = 'ab88c4b4866150ebbce7599c827d00f9f238c34e42baa095c9b0b6233e812ba54ef13d1b5ce512e7929eb4804b0218365c1071a35a85311ff3053c5e23a6';
 
         if ($env == 'develop') {
             return $devPrivateKey;

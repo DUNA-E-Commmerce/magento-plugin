@@ -15,6 +15,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_code = 'deunacheckout';
 
     /**
+     * Can Authorize
+     *
+     * @var string
+     */
+    protected $_canAuthorize = 'true';
+
+    /**
      * @var string
      */
     protected $_authTransactionId;

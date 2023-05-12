@@ -73,7 +73,7 @@ class Data extends AbstractHelper
 
         switch($domain) {
             case str_contains($domain, 'dev.'):
-                return 'develop';
+                return 'staging';
                 break;
             case str_contains($domain, 'local.'):
                 return 'develop';
