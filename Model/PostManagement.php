@@ -353,4 +353,20 @@ class PostManagement {
 
         return json_encode($response);
     }
+
+    public function captureTransaction($orderId)
+    {
+        try {
+            $order = $this->orderRepository->get($orderId);
+            $payment = $order->getPayment();
+            $amount = $payment->getAmountAuthorized();
+
+            $objectManager = ObjectManager::getInstance();
+            $paymentMethod = $objectManager->create(\DUna\Payments\Model\PaymentMethod::class);
+            return $paymentMethod->capture($payment, $amount);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
+    }
+
 }
