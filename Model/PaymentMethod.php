@@ -9,13 +9,12 @@ use Logtail\Monolog\LogtailHandler;
 use Magento\Payment\Model\InfoInterface;
 use Magento\Sales\Model\Order;
 use Magento\Payment\Model\Method\AbstractMethod;
-/**
- * DEUNA Checkout payment method model
- */
+use Magento\TestFramework\Utility\ChildrenClassesSearch\C;
+
 class PaymentMethod extends AbstractMethod
 {
     const LOGTAIL_SOURCE = 'plataformas_magento';
-    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
+    const LOGTAIL_SOURCE_TOKEN = 'Pdcpuus6eJnV6V49SZpNdHct';
 
     /**
      * @var Logger
@@ -53,11 +52,14 @@ class PaymentMethod extends AbstractMethod
         }
 
         try {
-
+            $this->_logger->info('Capture payment. In Proccess...');
+        //    $resp = $this->captureDeuna($payment);
+           
+            $this->_logger->info('Updating order state.');
             // Generate the transaction ID for the capture
             $transactionId = $payment->getId() . '-capture';
 
-            $this->_logger->info('Capturing payment. In Proccess...', ['transactionId' => $transactionId]);
+            $this->_logger->info('Register Capturing payment.', ['transactionId' => $transactionId]);
 
             // Set the capture data on the Payment object
             $payment->setTransactionId($transactionId);
@@ -107,11 +109,28 @@ class PaymentMethod extends AbstractMethod
 
             return true;
         } catch (\Exception $e) {
-            // Catch any exceptions and log them
             $errorMessage = $e->getMessage();
             $this->_logger->error($errorMessage);
 
             return false;
         }
     }
+
+    public function captureDeuna(InfoInterface $payment){
+
+        $orderToken = $payment->getAdditionalInformation('token');
+
+        $endpoint = "/merchants/orders/{$orderToken}/capture";
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+        ];
+        
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        return $requestHelper->request($endpoint, 'POST', '', $headers);
+    }
+
 }
