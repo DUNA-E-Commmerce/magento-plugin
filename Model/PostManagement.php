@@ -168,6 +168,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
                 $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
+                $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
                 $payment->setAdditionalInformation('token', $token);
                 $payment->save();
 
