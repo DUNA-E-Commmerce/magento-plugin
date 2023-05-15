@@ -3,11 +3,11 @@
     <default>
         <payment>
             <deunacheckout>
-                <payment_action>authorize</payment_action> <!-- You can use another method -->
                 <model>DUna\Payments\Model\PaymentMethod</model>
                 <active>1</active>
                 <title>DEUNA Checkout</title>
-                <order_status>pending_payment</order_status>
+                <order_status>pending</order_status>
+                <is_gateway>1</is_gateway>
             </deunacheckout>
         </payment>
     </default>

@@ -12,7 +12,7 @@ function isStaging() {
 }
 
 if(isDev()) {
-    env = 'Develop';
+    env = 'Staging';
 } else if(isStaging()) {
     env = 'Staging';
 } else {

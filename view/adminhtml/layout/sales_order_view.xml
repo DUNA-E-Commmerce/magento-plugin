@@ -3,4 +3,10 @@
     <head>
         <script type="text/javascript" src="DUna_Payments::js/capture_payment.js"></script>
     </head>
+    <body>
+        <!--add custom block -->
+        <referenceBlock name="payment_additional_info">
+            <block class="DUna\Payments\Block\Adminhtml\Order\View\View" name="custom_view" template="order/view/view.phtml"/>
+        </referenceBlock>
+    </body>
 </page>

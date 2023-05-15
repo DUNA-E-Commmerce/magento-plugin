@@ -131,5 +131,4 @@ class PaymentMethod extends AbstractMethod
 
         return $requestHelper->request($endpoint, 'POST', '', $headers);
     }
-
 }
