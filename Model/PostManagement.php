@@ -170,6 +170,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
                 $payment->setAdditionalInformation('token', $token);
+                $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
                 $payment->save();
 
                 $mgOrder->save();
@@ -346,4 +347,20 @@ class PostManagement {
 
         return json_encode($response);
     }
+
+    public function captureTransaction($orderId)
+    {
+        try {
+            $order = $this->orderRepository->get($orderId);
+            $payment = $order->getPayment();
+            $amount = $payment->getAmountAuthorized();
+
+            $objectManager = ObjectManager::getInstance();
+            $paymentMethod = $objectManager->create(\DUna\Payments\Model\PaymentMethod::class);
+            return $paymentMethod->capture($payment, $amount);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
+    }
+
 }
