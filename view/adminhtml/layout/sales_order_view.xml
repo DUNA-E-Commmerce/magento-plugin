@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="admin-2columns-left"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!--add custom block -->
+        <referenceBlock name="payment_additional_info">
+            <block class="DUna\Payments\Block\Adminhtml\Order\View\View" name="custom_view" template="order/view/view.phtml"/>
+        </referenceBlock>
+    </body>
+</page>

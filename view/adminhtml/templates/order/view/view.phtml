@@ -1,0 +1,37 @@
+<?php
+    $order = $block->getOrder($block->getRequest()->getParam('order_id'));
+    $paymentInfo = $order->getPayment();
+?>
+<br>
+<table class="admin__table-secondary payment-additional-info-table">
+    <tbody>
+        <tr>
+            <td>Processor</td>
+            <td><?=$paymentInfo->getAdditionalInformation('processor')?></td>
+        </tr>
+        <tr>
+            <td>Payment Method</td>
+            <td><?=$paymentInfo->getAdditionalInformation('payment_method')?></td>
+        </tr>
+        <tr>
+            <td>Card Type</td>
+            <td><?=$paymentInfo->getAdditionalInformation('card_type')?></td>
+        </tr>
+        <tr>
+            <td>Card BIN</td>
+            <td><?=$paymentInfo->getAdditionalInformation('card_bin')?></td>
+        </tr>
+        <tr>
+            <td>Auth Code</td>
+            <td><?=$paymentInfo->getAdditionalInformation('auth_code')?></td>
+        </tr>
+        <tr>
+            <td>No. Installments</td>
+            <td><?=$paymentInfo->getAdditionalInformation('number_of_installment')?></td>
+        </tr>
+        <tr>
+            <td>DEUNA Token</td>
+            <td><?=$paymentInfo->getAdditionalInformation('token')?></td>
+        </tr>
+    </tbody>
+</table>

@@ -124,7 +124,6 @@ class PostManagement {
             $userComment = $order['user_instructions'];
             $shippingAmount = $order['shipping_amount']/100;
             $totalAmount = $order['total_amount']/100;
-            $authCode = $paymentData['external_transaction_id'];
 
             $quote = $this->quotePrepare($order, $email);
 
@@ -133,8 +132,10 @@ class PostManagement {
             $output = [];
 
             if ($active) {
-                if($payment_status!='processed')
-                    return;
+                if($paymentMethod!='cash') {
+                    if(!$this->isSuccessStatus($payment_status))
+                        return [];
+                }
 
                 $mgOrder = $this->quoteManagement->submit($quote);
 
@@ -154,17 +155,13 @@ class PostManagement {
 
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
-                $mgOrder->addStatusHistoryComment(
-                    "Payment Processed by <strong>DEUNA Checkout</strong><br>
-                    <strong>Card Type:</strong> {$paymentData['from_card']['card_brand']}<br>
-                    <strong>Card BIN:</strong> {$paymentData['from_card']['first_six']}<br>
-                    <strong>Auth Code:</strong> {$authCode}<br>
-                    <strong>Payment Method:</strong> {$paymentMethod}<br>
-                    <strong>Processor:</strong> {$paymentProcessor}<br>
-                    <strong>Token:</strong> {$token}<br>"
-                );
-
                 $payment = $mgOrder->getPayment();
+                $payment->setAdditionalInformation('processor', $paymentProcessor);
+                $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
+                $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
+                $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
+                $payment->setAdditionalInformation('payment_method', $paymentMethod);
+                $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
                 $payment->setAdditionalInformation('token', $token);
                 $payment->save();
                 
@@ -280,7 +277,7 @@ class PostManagement {
 
     public function updatePaymentState($order, $payment_status, $totalAmount)
     {
-        if ($payment_status == 'processed') {
+        if ($this->isSuccessStatus($payment_status)) {
             $orderState = \Magento\Sales\Model\Order::STATE_PROCESSING;
             $order->setState($orderState)
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
@@ -327,5 +324,19 @@ class PostManagement {
         ];
 
         $quote->getShippingAddress()->addData($shipping_address);
+    }
+
+    public function isSuccessStatus($status)
+    {
+        switch ($status) {
+            case 'processed':
+            case 'authorized':
+            case 'captured':
+                return true;
+                break;
+            default:
+                return false;
+                break;
+        }
     }
 }
