@@ -4,34 +4,27 @@ namespace DUna\Payments\Helper;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Encryption\EncryptorInterface;
-use Magento\Framework\Serialize\Serializer\Json;
-use Magento\Framework\HTTP\Adapter\Curl;
+use Magento\Framework\HTTP\Client\Curl;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use DUna\Payments\Helper\Data;
-use Zend_Http_Client;
 
 class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 {
     const URL_PRODUCTION = 'https://apigw.getduna.com';
     const URL_STAGING = 'https://api.stg.deuna.io';
-    const URL_DEVELOPMENT = 'https://api.dev.deuna.io';
+    const URL_DEVELOPMENT = 'https://api.stg.deuna.io';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
     const LOGTAIL_SOURCE = 'plataformas_magento';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
-    const DEV_PRIVATE_KEY = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
+    const DEV_PRIVATE_KEY = 'ab88c4b4866150ebbce7599c827d00f9f238c34e42baa095c9b0b6233e812ba54ef13d1b5ce512e7929eb4804b0218365c1071a35a85311ff3053c5e23a6';
 
     /**
-     * @var Json
+     * @var curl
      */
-    private $json;
-
-    /**
-     * @var Curl
-     */
-    protected $curl;
+    private $curl;
 
     /**
      * @var Data
@@ -50,16 +43,14 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
-        Json $json,
-        Curl $curl,
         Data $helper,
+        Curl $curl,
         EncryptorInterface $encryptor,
     ) {
         parent::__construct($context);
         $this->curl = $curl;
         $this->helper = $helper;
         $this->encryptor = $encryptor;
-        $this->json = $json;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -72,66 +63,56 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
     public function request($endpoint, $method = 'GET', $body = null, $headers = [])
     {
         try {
-            switch ($method) {
-                case 'POST':
-                    $method = Zend_Http_Client::POST;
-                    break;
-                case 'PUT':
-                    $method = Zend_Http_Client::PUT;
-                    break;
-                case 'DELETE':
-                    $method = Zend_Http_Client::DELETE;
-                    break;
-                case 'HEAD':
-                    $method = Zend_Http_Client::HEAD;
-                    break;
-                case 'OPTIONS':
-                    $method = Zend_Http_Client::OPTIONS;
-                    break;
-                default:
-                    $method = Zend_Http_Client::GET;
-                    break;
-            }
+            $response = [];
 
-            $url = $this->getUrl() . $endpoint;
-            $http_ver = '1.1';
+            $body = json_encode($body);
+
+            $urlEndpoint = $this->getUrl() . $endpoint;
             $headers = $this->getHeaders();
 
-            if ($this->getEnvironment() !== 'prod') {
-                $this->logger->debug("Environment", [
-                    'environment' => $this->getEnvironment(),
-                    'apikey' => $this->getPrivateKey(),
-                    'request' => $url,
-                    'body' => $body,
-                ]);
+            $this->curl->setHeaders($headers);
+
+            if ($method == 'GET') {
+                $this->curl->get($urlEndpoint);
+            } else if ($method == 'POST') {
+                $this->curl->post($urlEndpoint, $body);
             }
 
-            $configuration['header'] = $headers;
+            $result = json_decode($this->curl->getBody(), true);
 
-            if ($this->getEnvironment() !== 'prod') {
-                $this->logger->debug('CURL Configuration sent', [
-                    'config' => $configuration,
-                ]);
+            if($this->curl->getStatus() != 200) {
+                $response = [
+                    'statusCode' => $this->curl->getStatus(),
+                    'success' => false,
+                    'errorCode' => $result['error']['code'],
+                    'errorMessage' => $result['error']['description'],
+                ];
+            } else {
+                $response = [
+                    'statusCode' => $this->curl->getStatus(),
+                    'data' => $result,
+                    'success' => true,
+                ];
             }
 
-            $this->curl->setConfig($configuration);
-            $this->curl->write($method, $url, $http_ver, $headers, $body);
-
-            $response = $this->curl->read();
-
-            $this->logger->debug('CURL Response', [
-                'response' => [
-                    'body' => $response,
-                ],
+            $this->logger->debug('Request Response', [
+                'endpoint' => $endpoint,
+                'method' => $method,
+                'payload' => $body,
+                'headers' => $headers,
+                'response' => $result,
             ]);
 
             return $response;
         } catch (\Exception $e) {
-            $this->logger->critical('Error on request cancellation', [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->critical('Error on request', $err);
+
+            return $err;
         }
 
     }
@@ -162,8 +143,8 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
     private function getHeaders(): array
     {
         return [
-            'X-Api-Key: ' . $this->getPrivateKey(),
-            'Content-Type: ' . self::CONTENT_TYPE
+            'X-Api-Key' => $this->getPrivateKey(),
+            'Content-Type' => self::CONTENT_TYPE,
         ];
     }
 

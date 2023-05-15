@@ -2,29 +2,27 @@
 
 namespace DUna\Payments\Model;
 
-use Magento\Framework\Event\ObserverInterface;
-use Magento\Checkout\Model\Session;
-use Magento\Shipping\Model\Config as shippingConfig;
-use Magento\Framework\HTTP\Adapter\Curl;
+use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Exception\LocalizedException;
-use Zend_Http_Client;
-use Magento\Framework\Serialize\Serializer\Json;
-use DUna\Payments\Helper\Data;
-use Exception;
-use Magento\Store\Model\StoreManagerInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
-use Magento\Catalog\Model\Category;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\HTTP\Adapter\Curl;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Checkout\Api\TotalsInformationManagementInterface;
+use Magento\Checkout\Api\Data\TotalsInformationInterface;
+use Magento\Catalog\Model\Category;
+use Magento\Catalog\Helper\Image;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Quote\Api\ShippingMethodManagementInterface;
-use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
-use Magento\Checkout\Api\Data\TotalsInformationInterface;
-use Magento\Checkout\Api\TotalsInformationManagementInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Catalog\Helper\Image;
-use Magento\Framework\App\ObjectManager;
-use Magento\Catalog\Api\ProductRepositoryInterface;
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Checkout\Model\Session;
+use DUna\Payments\Helper\Data;
+use Exception;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 
@@ -33,7 +31,7 @@ class OrderTokens
 
     const URL_PRODUCTION = 'https://apigw.getduna.com/merchants/orders';
     const URL_STAGING = 'https://api.stg.deuna.io/merchants/orders';
-    const URL_DEVELOPMENT = 'https://api.dev.deuna.io/merchants/orders';
+    const URL_DEVELOPMENT = 'https://api.stg.deuna.io/merchants/orders';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
@@ -119,6 +117,11 @@ class OrderTokens
      */
     protected $imageHelper;
 
+    /**
+     * @var CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
     public function __construct(
         Session $checkoutSession,
         Curl $curl,
@@ -139,6 +142,7 @@ class OrderTokens
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
         Image $imageHelper,
+        CartRepositoryInterface $quoteRepository,
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -158,10 +162,11 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
+        $this->quoteRepository = $quoteRepository;
+        $this->imageHelper = $imageHelper;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
         $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
-        $this->imageHelper = $imageHelper;
     }
 
     /**
@@ -194,7 +199,7 @@ class OrderTokens
          * Merchant Dev: MAGENTO
          * Used for local development
          */
-        $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
+        $devPrivateKey = 'ab88c4b4866150ebbce7599c827d00f9f238c34e42baa095c9b0b6233e812ba54ef13d1b5ce512e7929eb4804b0218365c1071a35a85311ff3053c5e23a6';
 
         if ($env == 'develop') {
             return $devPrivateKey;
@@ -276,68 +281,30 @@ class OrderTokens
      * @return mixed
      * @throws LocalizedException
      */
-    public function request($body)
+    public function send($body)
     {
-        $method = Zend_Http_Client::POST;
-        $url = $this->getUrl();
-        $http_ver = '1.1';
-        $headers = $this->getHeaders();
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
-        if($this->getEnvironment()!=='prod') {
-            $this->logger->debug("Environment", [
-                'environment' => $this->getEnvironment(),
-                'apikey' => $this->getPrivateKey(),
-                'request' => $url,
-                'body' => $body,
-            ]);
+        $response = $requestHelper->request('/merchants/orders', 'POST', $body);
+
+        if(!$response['success']) {
+            if($response['errorMessage']==='cannot create an order already processed') {
+                $quote = $this->quoteRepository->get($body['order']['order_id']);
+                $quote->setIsActive(1);
+                $this->quoteRepository->save($quote);
+                $this->checkoutSession->replaceQuote($quote);
+
+                $body['order']['order_id'] = $quote->getId();
+
+                $response = $requestHelper->request('/merchants/orders', 'POST', $body);
+
+                $this->logger->debug('Quote Replaced', [
+                    'quote' => $quote,
+                    'response' => $response,
+                ]);
+            }
         }
-
-        $configuration['header'] = false;
-
-        if($this->getEnvironment()!=='prod') {
-            $this->logger->debug('CURL Configuration sent', [
-                'config' => $configuration,
-            ]);
-        }
-
-        $this->curl->setConfig($configuration);
-        $this->curl->write($method, $url, $http_ver, $headers, $body);
-
-        $response = $this->curl->read();
-
-        if (!$response) {
-            $msg = "No response from request to {$url}";
-            $this->logger->warning($msg);
-            throw new LocalizedException(__($msg));
-        }
-
-        $response = $this->json->unserialize($response);
-
-        if($this->getEnvironment()!=='prod') {
-            $this->logger->debug("Response", [
-                'data' => $response,
-            ]);
-        }
-
-        if(!empty($response['error'])) {
-            $error = $response['error'];
-            $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
-
-            $this->logger->debug('Error on DEUNA Token', [
-                'url' => $url,
-                'error' => $error,
-            ]);
-
-            throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
-        }
-
-        if (!empty($response['code'])) {
-            throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $response['code'] . ' Error: ' . $response['message']));
-        }
-
-        $this->logger->debug('Token Response', [
-            'token' => $response,
-        ]);
 
         return $response;
     }
@@ -653,9 +620,9 @@ class OrderTokens
 
         $body = $this->json->serialize($this->getBody($quote));
 
-        $body = json_encode($this->getBody($quote));
+        $body = $this->getBody($quote);
 
-        return $this->request($body);
+        return $this->send($body);
     }
 
     /**
@@ -665,33 +632,31 @@ class OrderTokens
     public function getToken()
     {
         try {
-            $this->logger->info('Starting tokenization');
+            $this->logger->info('--- Starting tokenization ---');
 
             $this->getPaymentMethodList();
 
             $token = $this->tokenize();
 
-            $this->logger->info("Token Generated ({$token['token']})", [
-                'token' => $token,
-            ]);
-
             return $token;
         } catch(NoSuchEntityException $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->critical('Critical error in '.__FUNCTION__, $err);
 
-            return false;
+            return $err;
         } catch(Exception $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->critical('Critical error in '.__FUNCTION__, $err);
 
-            return false;
+            return $err;
         }
     }
 
