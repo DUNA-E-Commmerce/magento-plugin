@@ -176,6 +176,7 @@ class PostManagement {
                 $this->logger->debug("Magento Payment method: {$method}");
 
                 $payment->setAdditionalInformation('token', $token);
+                $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
                 $payment->setData('AuthCode', 'TEST');
                 $payment->save();
 

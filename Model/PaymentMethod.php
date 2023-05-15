@@ -25,7 +25,6 @@ class PaymentMethod extends AbstractMethod
 
     public function authorize(InfoInterface $payment, $amount)
     {
-
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
 
@@ -54,7 +53,7 @@ class PaymentMethod extends AbstractMethod
         try {
             $this->_logger->info('Capture payment. In Proccess...');
         //    $resp = $this->captureDeuna($payment);
-           
+
             $this->_logger->info('Updating order state.');
             // Generate the transaction ID for the capture
             $transactionId = $payment->getId() . '-capture';
@@ -97,7 +96,7 @@ class PaymentMethod extends AbstractMethod
 
             $totalDue = $order->getGrandTotal() - $totalPaid;
             $order->setTotalDue($totalDue);
-            
+
             // Update the order state to "Processing"
             $order->setState(Order::STATE_PROCESSING)
                 ->setStatus(Order::STATE_PROCESSING)
@@ -126,7 +125,7 @@ class PaymentMethod extends AbstractMethod
             'Accept: application/json',
             'Content-Type: application/json',
         ];
-        
+
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 

@@ -33,9 +33,9 @@ let components = [
 let deunaEnv;
 
 if(isDev()) {
-    deunaEnv = 'develop';
-    components.push('https://cdn.dev.deuna.io/cdl/index.js');
-    components.push(`https://cdn.dev.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
+    deunaEnv = 'staging';
+    components.push('https://cdn.stg.deuna.io/cdl/index.js');
+    components.push(`https://cdn.stg.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
 } else if(isStaging()) {
     deunaEnv = 'staging';
     components.push('https://cdn.stg.deuna.io/cdl/index.js');
@@ -63,7 +63,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
         configure: async function (data) {
             if(env!='Prod')
                 console.log(data)
-            
+
                 const obj = JSON.parse(data);
 
             let config = {
@@ -77,7 +77,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
         show: function () {
             if(env!='Prod')
                 console.debug('Tokenize DEUNA Checkout');
-                
+
             const self = this,
                   tokenUrl = Url.build('rest/V1/DUna/token');
 
@@ -98,7 +98,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
             const self = this;
 
             this.hasEnable(false);
-            
+
             setTimeout(function () {
                 self.hasEnable(true);
             }, 5000)
