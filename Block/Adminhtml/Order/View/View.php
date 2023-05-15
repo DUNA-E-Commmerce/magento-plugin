@@ -1,10 +1,30 @@
 <?php
 namespace DUna\Payments\Block\Adminhtml\Order\View;
+
+use Magento\Sales\Api\OrderRepositoryInterface;
+
 class View extends \Magento\Backend\Block\Template
 {
-    public function myFunction()
+    protected $orderRepository;
+
+    public function __construct(
+        \Magento\Backend\Block\Template\Context $context,
+        OrderRepositoryInterface $order,
+        array $data = []
+    ) {
+        $this->orderRepository = $order;
+        parent::__construct($context, $data);
+    }
+
+    public function _prepareLayout()
     {
-        //your code
-        return "Customers' Instruction";
+        return parent::_prepareLayout();
+    }
+
+    public function getOrder($orderId)
+    {
+        $order = $this->orderRepository->get($orderId);
+
+        return $order;
     }
 }

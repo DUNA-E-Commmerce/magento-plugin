@@ -1,6 +1,33 @@
-<div>
-    <h1><?php echo $block->myFunction()?></h1>
-    <h3>I want two different sizes, i.e., M and XL for the customized tshirts ordered here. Also, I want to increase the
-        font size of the text to 25.</h3></br>
-    <h3>Thank you.</h3>
-</div>
+<?php
+    $order = $block->getOrder($block->getRequest()->getParam('order_id'));
+    $paymentInfo = $order->getPayment();
+?>
+<br>
+<table class="admin__table-secondary payment-additional-info-table">
+    <tbody>
+        <tr>
+            <td>Processor</td>
+            <td><?=$paymentInfo->getAdditionalInformation('processor')?></td>
+        </tr>
+        <tr>
+            <td>Payment Method</td>
+            <td><?=$paymentInfo->getAdditionalInformation('payment_method')?></td>
+        </tr>
+        <tr>
+            <td>Card Type</td>
+            <td><?=$paymentInfo->getAdditionalInformation('card_type')?></td>
+        </tr>
+        <tr>
+            <td>Card BIN</td>
+            <td><?=$paymentInfo->getAdditionalInformation('card_bin')?></td>
+        </tr>
+        <tr>
+            <td>Auth Code</td>
+            <td><?=$paymentInfo->getAdditionalInformation('auth_code')?></td>
+        </tr>
+        <tr>
+            <td>DEUNA Token</td>
+            <td><?=$paymentInfo->getAdditionalInformation('token')?></td>
+        </tr>
+    </tbody>
+</table>

@@ -3,7 +3,7 @@
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <!--add custom block -->
-        <referenceBlock name="order_payment_method">
+        <referenceBlock name="payment_additional_info">
             <block class="DUna\Payments\Block\Adminhtml\Order\View\View" name="custom_view" template="order/view/view.phtml"/>
         </referenceBlock>
     </body>

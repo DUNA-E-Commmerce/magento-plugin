@@ -160,23 +160,14 @@ class PostManagement {
 
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
-                $mgOrder->addStatusHistoryComment(
-                    "Payment Processed by <strong>DEUNA Checkout</strong><br>
-                    <strong>Card Type:</strong> {$paymentData['from_card']['card_brand']}<br>
-                    <strong>Card BIN:</strong> {$paymentData['from_card']['first_six']}<br>
-                    <strong>Auth Code:</strong> {$authCode}<br>
-                    <strong>Payment Method:</strong> {$paymentMethod}<br>
-                    <strong>Processor:</strong> {$paymentProcessor}<br>
-                    <strong>Token:</strong> {$token}<br>"
-                );
-
                 $payment = $mgOrder->getPayment();
                 $method = $payment->getMethodInstance()->getCode();
 
-                $this->logger->debug("Magento Payment method: {$method}");
-
+                $payment->setAdditionalInformation('processor', $paymentProcessor);
+                $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
+                $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
+                $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('token', $token);
-                $payment->setData('AuthCode', 'TEST');
                 $payment->save();
 
                 $mgOrder->save();
