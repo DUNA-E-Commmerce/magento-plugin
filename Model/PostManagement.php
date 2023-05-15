@@ -281,9 +281,11 @@ class PostManagement {
     {
         $tokenResponse = $this->orderTokens->getToken();
 
+        $data = $tokenResponse['data'];
+
         $json = [
-            'orderToken' => $tokenResponse['token'],
-            'order_id' => $tokenResponse['order']['order_id'],
+            'orderToken' => $data['token'],
+            'order_id' => $data['order']['order_id'],
         ];
 
         return json_encode($json);

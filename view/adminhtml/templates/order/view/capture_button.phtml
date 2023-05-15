@@ -1,0 +1,6 @@
+<?php
+$orderId = $block->getRequest()->getParam('order_id');
+?>
+<button class="action-default" type="button" onclick="location.href='<?php echo $block->getUrl('*/*/capture', ['order_id' => $orderId]); ?>'">
+    <span><?php echo __('Capturar Transacción') ?></span>
+</button>

@@ -3,7 +3,7 @@
     <default>
         <payment>
             <deunacheckout>
-                <payment_action>authorize</payment_action> <!-- You can use another method -->
+                <payment_action>authorize_capture</payment_action> <!-- You can use another method -->
                 <model>DUna\Payments\Model\PaymentMethod</model>
                 <active>1</active>
                 <title>DEUNA Checkout</title>
