@@ -20,7 +20,7 @@ use Logtail\Monolog\LogtailHandler;
 
 class PostManagement {
 
-    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE = 'plataformas_magento';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
 
     /**
