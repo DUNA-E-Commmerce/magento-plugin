@@ -22,7 +22,7 @@ class CapturePayment
     ) {
         $order = $context->getOrder();
 
-        // if ($order && $order->getPayment()->getAdditionalInformation('deuna_payment_status') === 'authorized') {
+        if ($order && $order->getPayment()->getAdditionalInformation('deuna_payment_status') === 'authorized') {
             $buttonList->add(
                 'capture_payment',
                 [
@@ -31,7 +31,7 @@ class CapturePayment
                     'id' => 'capture_payment'
                 ]
             );
-        // }
+        }
         return [$context, $buttonList];
     }
 

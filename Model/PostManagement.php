@@ -123,7 +123,6 @@ class PostManagement {
             $userComment = $order['user_instructions'];
             $shippingAmount = $order['shipping_amount']/100;
             $totalAmount = $order['total_amount']/100;
-            $authCode = $paymentData['external_transaction_id'];
 
             $quote = $this->quotePrepare($order, $email);
 
@@ -161,7 +160,6 @@ class PostManagement {
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
                 $payment = $mgOrder->getPayment();
-                $method = $payment->getMethodInstance()->getCode();
 
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
