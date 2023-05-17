@@ -3,8 +3,7 @@ require(['jquery'], function($) {
 
     $(document).ready(function() {
         $('#capture_payment').click(function() {
-            var orderId = $('input[name="order_id"]').val();
-            console.log('orderId: ' + orderId);
+            let orderId = document.getElementById('order_id_to_capture').value;
 
             $.ajax({
                 url: '/rest/V1/DUna/capture/' + orderId,
@@ -25,5 +24,4 @@ require(['jquery'], function($) {
             });
         });
       });
-
 });

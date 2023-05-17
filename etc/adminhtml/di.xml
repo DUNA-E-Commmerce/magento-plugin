@@ -4,4 +4,7 @@
     <type name="Magento\Backend\Block\Widget\Button\Toolbar">
         <plugin name="add_sales_button_toolbar" type="DUna\Payments\Plugin\Block\Widget\Button\CapturePayment" />
     </type>
+    <type name="Magento\Sales\Block\Adminhtml\Order\View">
+        <plugin name="add_sales_button_toolbar" type="DUna\Payments\Plugin\OrderView" />
+    </type>
 </config>
