@@ -99,6 +99,7 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 
             if ($this->getEnvironment() !== 'prod') {
                 $this->logger->debug("Environment", [
+                    'method' => $method,
                     'environment' => $this->getEnvironment(),
                     'apikey' => $this->getPrivateKey(),
                     'request' => $url,

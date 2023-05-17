@@ -416,41 +416,49 @@ class PostManagement {
         }
 
         try {
-            $resp = $this->captureDeuna($payment);
+            $deunaCaptureResponse = $this->captureDeuna($payment);
 
-            // Generate the transaction ID for the capture
-            $parentId = "auth-{$payment->getId()}";
+            if($deunaCaptureResponse) {
+                $status = 'processed';
 
-            $additionalInfo = [
-                'captured_amount' => $amount,
-                'processor' => $payment->getAdditionalInformation('processor'),
-                'card_type' => $payment->getAdditionalInformation('card_type'),
-                'card_bin' => $payment->getAdditionalInformation('card_bin'),
-                'auth_code' => $payment->getAdditionalInformation('auth_code'),
-                'payment_method' => $payment->getAdditionalInformation('payment_method'),
-                'number_of_installment' => $payment->getAdditionalInformation('number_of_installment'),
-                'deuna_payment_status' => $payment->getAdditionalInformation('deuna_payment_status'),
-                'token' => $payment->getAdditionalInformation('token'),
-            ];
+                // Generate the transaction ID for the capture
+                $parentId = "auth-{$payment->getId()}";
 
-            $this->createTransaction($payment, 'capture', $parentId, $amount, $additionalInfo);
+                $additionalInfo = [
+                    'captured_amount' => $amount,
+                    'processor' => $payment->getAdditionalInformation('processor'),
+                    'card_type' => $payment->getAdditionalInformation('card_type'),
+                    'card_bin' => $payment->getAdditionalInformation('card_bin'),
+                    'auth_code' => $payment->getAdditionalInformation('auth_code'),
+                    'payment_method' => $payment->getAdditionalInformation('payment_method'),
+                    'number_of_installment' => $payment->getAdditionalInformation('number_of_installment'),
+                    'deuna_payment_status' => $payment->getAdditionalInformation('deuna_payment_status'),
+                    'token' => $payment->getAdditionalInformation('token'),
+                ];
 
-            $order = $payment->getOrder();
+                $this->createTransaction($payment, 'capture', $parentId, $amount, $additionalInfo);
 
-            $totalPaid = $order->getTotalPaid() + $amount;
-            $order->setTotalPaid($totalPaid);
+                $order = $payment->getOrder();
 
-            $totalDue = $order->getGrandTotal() - $totalPaid;
-            $order->setTotalDue($totalDue);
+                $totalPaid = $order->getTotalPaid() + $amount;
+                $order->setTotalPaid($totalPaid);
 
-            // Update the order state to "Processing"
-            $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                  ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                  ->addStatusToHistory(
-                    \Magento\Sales\Model\Order::STATE_PROCESSING, __('Payment captured successfully.')
-                  )->save();
+                $totalDue = $order->getGrandTotal() - $totalPaid;
+                $order->setTotalDue($totalDue);
 
-            return true;
+                // Update the order state to "Processing"
+                $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                    ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                    ->addStatusToHistory(
+                        \Magento\Sales\Model\Order::STATE_PROCESSING, __('Payment captured successfully.')
+                    )->save();
+
+                return $deunaCaptureResponse;
+            } else {
+                $this->logger->error('Error capturing payment');
+
+                return $deunaCaptureResponse;
+            }
         } catch (\Exception $e) {
             $err = [
                 'message' => $e->getMessage(),
@@ -482,7 +490,9 @@ class PostManagement {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
-        return $requestHelper->request($endpoint, 'POST', $body, $headers);
+        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
+
+        return $response;
     }
 
     public function createTransaction($payment, $type = 'approved', $parentId = null, $amount = 0, $additionalInfo = [])
@@ -503,6 +513,7 @@ class PostManagement {
                     'additionalInfo' => $additionalInfo,
                 ]);
                 $transaction->setIsClosed(1);
+
                 break;
             case 'auth':
                 $this->logger->debug('Transaction type: auth', [
@@ -511,7 +522,9 @@ class PostManagement {
                     'additionalInfo' => $additionalInfo,
                 ]);
                 $transaction->setIsClosed(0);
+
                 $payment->setAmountAuthorized($order->getTotalDue());
+
                 break;
             case 'capture':
                 $this->logger->debug('Transaction type: capture', [
@@ -522,9 +535,14 @@ class PostManagement {
                 $transaction->setIsClosed(1);
                 $transaction->setParentTxnId($parentId);
                 $transaction->setAmountCaptured($amount);
-                $transaction->closeAuthorization();
 
+                $parent = $payment->getAuthorizationTransaction();
+                $parent->setIsClosed(1);
+                $parent->save();
+
+                $payment->setParentTransactionId($parentId);
                 $payment->setAdditionalInformation('deuna_payment_status', 'processed');
+
                 break;
         }
 
