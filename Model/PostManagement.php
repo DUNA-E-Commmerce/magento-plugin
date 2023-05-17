@@ -22,6 +22,16 @@ class PostManagement {
 
     const LOGTAIL_SOURCE = 'magento-bedbath-mx';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
+    const TRANSACTION_TYPES = [
+        'approved' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE,
+        'auth' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH,
+        'capture' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE,
+        'refund' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_REFUND,
+        'void' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_VOID,
+        'cancel' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_VOID,
+    ];
+
+    protected $_code = 'deunacheckout';
 
     /**
      * @var Request
@@ -163,6 +173,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
                 $payment->setAdditionalInformation('token', $token);
+                $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
                 $payment->save();
                 
                 $mgOrder->save();
@@ -218,7 +229,7 @@ class PostManagement {
 
         $quote = $this->cri->get($quoteId);
 
-        $quote->getPayment()->setMethod('deuna_payments');
+        $quote->getPayment()->setMethod('deunacheckout');
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
