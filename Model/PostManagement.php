@@ -375,6 +375,9 @@ class PostManagement {
         return json_encode($response);
     }
 
+    /**
+     * Capture Transaction
+     */
     public function captureTransaction($orderId)
     {
         try {

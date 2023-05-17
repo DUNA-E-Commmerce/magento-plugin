@@ -3,7 +3,4 @@
     <event name="sales_order_save_after">
         <observer name="order_update_observer" instance="DUna\Payments\Observer\OrderUpdateObserver" />
     </event>
-    <event name="deuna_order_notify">
-        <observer name="deuna_post_notify" instance="DUna\Payments\Observer\DeunaOrderObserver" />
-    </event>
 </config>
