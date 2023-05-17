@@ -19,4 +19,10 @@
             <resource ref="anonymous"/>
         </resources>
     </route>
+    <route url="/V1/DUna/capture/:orderId" method="GET">
+        <service class="DUna\Payments\Api\PostManagementInterface" method="captureTransaction"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
 </routes>

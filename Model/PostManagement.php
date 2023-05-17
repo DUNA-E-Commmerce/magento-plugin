@@ -108,8 +108,6 @@ class PostManagement {
         $this->deunaShipping = $deunaShipping;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-
-        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -142,9 +140,14 @@ class PostManagement {
             $output = [];
 
             if ($active) {
+                $this->logger->debug("Quote ({$quote->getId()}) is active", [
+                    'paymentStatus' => $payment_status,
+                    'paymentMethod' => $paymentMethod,
+                ]);
+
                 if($paymentMethod!='cash') {
-                    if(!$this->isSuccessStatus($payment_status))
-                        return [];
+                    if($payment_status!='processed' && $payment_status!='authorized')
+                        return;
                 }
 
                 $mgOrder = $this->quoteManagement->submit($quote);
@@ -172,8 +175,8 @@ class PostManagement {
                 $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
-                $payment->setAdditionalInformation('token', $token);
                 $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
+                $payment->setAdditionalInformation('token', $token);
                 $payment->save();
                 
                 $mgOrder->save();
@@ -197,7 +200,10 @@ class PostManagement {
 
                 die();
             } else {
-                $output['status'] = $order['status'];
+                $output = [
+                    'status' => 'failed',
+                    'data' => 'Quote is not active',
+                ];
 
                 $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
                     'data' => $output,
@@ -288,14 +294,27 @@ class PostManagement {
 
     public function updatePaymentState($order, $payment_status, $totalAmount)
     {
-        if ($this->isSuccessStatus($payment_status)) {
+        $payment = $order->getPayment();
+
+        if ($payment_status == 'processed') {
             $orderState = \Magento\Sales\Model\Order::STATE_PROCESSING;
             $order->setState($orderState)
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
                   ->setTotalPaid($totalAmount)
-                  ->setPaymentMethod('checkmo');
+                  ->setPaymentMethod('deunacheckout');
 
-            $this->logger->info("Order ({$order->getIncrementId()}) change status to PROCESSING");
+            $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PROCESSING");
+
+            $this->createTransaction($payment, 'approved');
+        } elseif ($payment_status == 'authorized') {
+            $orderState = \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT;
+            $order->setState($orderState)
+                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
+                  ->setPaymentMethod('deunacheckout');
+
+            $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PENDING PAYMENT");
+
+            $this->createTransaction($payment, 'auth');
         }
     }
 
@@ -349,5 +368,188 @@ class PostManagement {
                 return false;
                 break;
         }
+    }
+
+    /**
+     * Capture Transaction
+     */
+    public function captureTransaction($orderId)
+    {
+        try {
+            $this->logger->info('Capture Transaction', [
+                'orderId' => $orderId,
+            ]);
+
+            $order = $this->orderRepository->get($orderId);
+            $payment = $order->getPayment();
+            $amount = $payment->getAmountAuthorized();
+
+            return $this->capturePayment($payment, $amount);
+        } catch (\Exception $e) {
+            $err = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ];
+            $this->logger->critical($err['message'], $err);
+
+            return $err;
+        }
+    }
+
+    /**
+     * Capture Payment
+     *
+     * @param \Magento\Payment\Model\InfoInterface $payment Payment object
+     * @param $amount Amount to capture
+     */
+    public function capturePayment($payment, $amount)
+    {
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+
+        if ($amount <= 0) {
+            $this->logger->error('Invalid amount for capture.');
+            throw new \Magento\Framework\Exception\LocalizedException(__('Invalid amount for capture.'));
+        }
+
+        try {
+            $deunaCaptureResponse = $this->captureDeuna($payment);
+
+            if($deunaCaptureResponse) {
+                $status = 'processed';
+
+                // Generate the transaction ID for the capture
+                $parentId = "auth-{$payment->getId()}";
+
+                $additionalInfo = [
+                    'captured_amount' => $amount,
+                    'processor' => $payment->getAdditionalInformation('processor'),
+                    'card_type' => $payment->getAdditionalInformation('card_type'),
+                    'card_bin' => $payment->getAdditionalInformation('card_bin'),
+                    'auth_code' => $payment->getAdditionalInformation('auth_code'),
+                    'payment_method' => $payment->getAdditionalInformation('payment_method'),
+                    'number_of_installment' => $payment->getAdditionalInformation('number_of_installment'),
+                    'deuna_payment_status' => $payment->getAdditionalInformation('deuna_payment_status'),
+                    'token' => $payment->getAdditionalInformation('token'),
+                ];
+
+                $this->createTransaction($payment, 'capture', $parentId, $amount, $additionalInfo);
+
+                $order = $payment->getOrder();
+
+                $totalPaid = $order->getTotalPaid() + $amount;
+                $order->setTotalPaid($totalPaid);
+
+                $totalDue = $order->getGrandTotal() - $totalPaid;
+                $order->setTotalDue($totalDue);
+
+                // Update the order state to "Processing"
+                $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                    ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                    ->addStatusToHistory(
+                        \Magento\Sales\Model\Order::STATE_PROCESSING, __('Payment captured successfully.')
+                    )->save();
+
+                return $deunaCaptureResponse;
+            } else {
+                $this->logger->error('Error capturing payment');
+
+                return $deunaCaptureResponse;
+            }
+        } catch (\Exception $e) {
+            $err = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ];
+
+            $this->logger->critical('Error capturing payment', $err);
+
+            return $err;
+        }
+    }
+
+    public function captureDeuna($payment)
+    {
+
+        $orderToken = $payment->getAdditionalInformation('token');
+
+        $endpoint = "/merchants/orders/{$orderToken}/capture";
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+        ];
+
+        $body = [
+            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
+        ];
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
+
+        return $response;
+    }
+
+    public function createTransaction($payment, $type = 'approved', $parentId = null, $amount = 0, $additionalInfo = [])
+    {
+        $txnId = "{$type}-{$payment->getId()}";
+        $txnType = self::TRANSACTION_TYPES[$type];
+        $order = $payment->getOrder();
+
+        $payment->setTransactionId($txnId);
+
+        $transaction = $payment->addTransaction($txnType);
+
+        switch($type) {
+            case 'approved':
+                $this->logger->debug('Transaction type: approved', [
+                    'parentId' => $parentId,
+                    'amount' => $amount,
+                    'additionalInfo' => $additionalInfo,
+                ]);
+                $transaction->setIsClosed(1);
+
+                break;
+            case 'auth':
+                $this->logger->debug('Transaction type: auth', [
+                    'parentId' => $parentId,
+                    'amount' => $amount,
+                    'additionalInfo' => $additionalInfo,
+                ]);
+                $transaction->setIsClosed(0);
+
+                $payment->setAmountAuthorized($order->getTotalDue());
+
+                break;
+            case 'capture':
+                $this->logger->debug('Transaction type: capture', [
+                    'parentId' => $parentId,
+                    'amount' => $amount,
+                    'additionalInfo' => $additionalInfo,
+                ]);
+                $transaction->setIsClosed(1);
+                $transaction->setParentTxnId($parentId);
+                $transaction->setAmountCaptured($amount);
+
+                $parent = $payment->getAuthorizationTransaction();
+                $parent->setIsClosed(1);
+                $parent->save();
+
+                $payment->setParentTransactionId($parentId);
+                $payment->setAdditionalInformation('deuna_payment_status', 'processed');
+
+                break;
+        }
+
+        $transaction->setAdditionalInformation(
+            \Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS,$additionalInfo
+        );
+
+        $transaction->save();
+        $payment->save();
     }
 }

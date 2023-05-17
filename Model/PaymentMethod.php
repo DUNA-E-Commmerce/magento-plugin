@@ -2,10 +2,12 @@
 
 namespace DUna\Payments\Model;
 
+use Magento\Payment\Model\Method\AbstractMethod;
+
 /**
  * DEUNA Checkout payment method model
  */
-class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
+class PaymentMethod extends AbstractMethod
 {
     /**
      * Payment code
