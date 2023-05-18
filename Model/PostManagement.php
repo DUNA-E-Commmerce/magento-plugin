@@ -176,6 +176,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
                 $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
+                $payment->setAdditionalInformation('authentication_method', $paymentData['authentication_method']);
                 $payment->setAdditionalInformation('token', $token);
                 $payment->save();
                 
@@ -239,7 +240,7 @@ class PostManagement {
         $processor = $paymentData['processor'];
 
         if(isset($paymentData['authentication_method'])) {
-            if(!empty('authentication_method'))
+            if(!empty($paymentData['authentication_method']) && $processor=='evopayment')
                 $processor = "{$processor}_3ds";
         }
 
