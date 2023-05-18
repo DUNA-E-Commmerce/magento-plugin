@@ -244,7 +244,7 @@ class PostManagement {
         $processor = $paymentData['processor'];
 
         if(isset($paymentData['authentication_method'])) {
-            if(!empty('authentication_method'))
+            if(!empty($paymentData['authentication_method']) && $processor=='evopayment')
                 $processor = "{$processor}_3ds";
         }
 
