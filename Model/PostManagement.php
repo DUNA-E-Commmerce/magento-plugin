@@ -240,8 +240,14 @@ class PostManagement {
         $quote = $this->cri->get($quoteId);
 
         $paymentData = $order['payment']['data'];
+        $processor = $paymentData['processor'];
 
-        $quote->getPayment()->setMethod($this->mapPaymentMethod($paymentData['processor']));
+        if(isset($paymentData['authentication_method'])) {
+            if(!empty('authentication_method'))
+                $processor = "{$processor}_3ds";
+        }
+
+        $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
