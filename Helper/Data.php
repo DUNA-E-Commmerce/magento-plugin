@@ -100,4 +100,15 @@ class Data extends AbstractHelper
     public function log($type, $message, array $context = []) {
         $this->logger->{$type}($message, $context);
     }
+
+    /**
+     * @param $price
+     * @return int
+     */
+    public function priceFormat($price): int
+    {
+        $priceFix = number_format(is_null($price) ? 0 : $price, 2, '.', '');
+
+        return (int) round($priceFix * 100, 1 , PHP_ROUND_HALF_UP);;
+    }
 }
