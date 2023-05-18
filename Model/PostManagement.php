@@ -31,7 +31,6 @@ class PostManagement {
         'cancel' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_VOID,
     ];
 
-
     /**
      * Payment code
      *
@@ -240,7 +239,9 @@ class PostManagement {
 
         $quote = $this->cri->get($quoteId);
 
-        $quote->getPayment()->setMethod('deunacheckout');
+        $paymentData = $order['payment']['data'];
+
+        $quote->getPayment()->setMethod($this->mapPaymentMethod($paymentData['processor']));
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
@@ -555,5 +556,25 @@ class PostManagement {
 
         $transaction->save();
         $payment->save();
+    }
+
+    public function mapPaymentMethod($paymentMethod) {
+        switch($paymentMethod) {
+            case 'adyen':
+                return 'adyen_cc';
+                break;
+            case 'evopayment':
+                return 'tns_hpf';
+                break;
+            case 'amex':
+                return 'amex_hpf';
+                break;
+            case 'evopayment_3ds':
+                return 'tns_hosted';
+                break;
+            default:
+                return 'deunacheckout';
+                break;
+        }
     }
 }
