@@ -22,6 +22,13 @@ function updateCheckoutButton(radioElements,checkoutButton) {
     checkoutButton.disabled = true;
 }
 
+function addListenersToRadios(radioElements,checkoutButton) {
+    console.log('Add Listeners to Radios');
+    for (var i = 0; i < radioElements.length; i++) {
+        radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
+    }
+}
+
 if(isDev()) {
     env = 'Develop';
 } else if(isStaging()) {
@@ -63,6 +70,18 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
     window.DeunaCDL = DeunaCDL;
 
     window.addEventListener('load', (event) => {
+
+        var shippingMethodForm = document.getElementById('block-shipping-top');
+    
+        if (shippingMethodForm != null) {
+            console.log('paso shippingMethodForm');
+            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
+            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
+            
+            updateCheckoutButton( radioElements, checkoutButton);
+            addListenersToRadios( radioElements, checkoutButton);
+        }
+
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -93,22 +112,6 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
     
         xhr.open('GET', domain + '/storepickup/stores/index/?_=' + Date.now());
         xhr.send();
-    });
-    
-    document.addEventListener("DOMContentLoaded", function() {
-        console.log('DOM Cargados');
-        var shippingMethodForm = document.getElementById('block-shipping-top');
-    
-        if (shippingMethodForm != null) {
-            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
-            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
-            
-            updateCheckoutButton( radioElements, checkoutButton);
-    
-            for (var i = 0; i < radioElements.length; i++) {
-                radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
-            }
-        }
     });
 
     return Component.extend({
