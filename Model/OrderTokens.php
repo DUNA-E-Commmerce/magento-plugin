@@ -367,6 +367,8 @@ class OrderTokens
         $lat = 0;
         $long = 0;
 
+        $this->logger->debug("Shipping method {$shippingMethod} selected");
+
         $discount_amount = $this->getDiscountAmount($quote);
         $subtotal_amount = $quote->getSubtotal();
         $subtotal_amount -= $discount_amount;
@@ -718,5 +720,10 @@ class OrderTokens
         }
 
         $this->logger->debug('Payment Method List', $output);
+    }
+
+    private function replace_null($value, $replace) {
+        if (is_null($value)) return $replace;
+        return $value;
     }
 }
