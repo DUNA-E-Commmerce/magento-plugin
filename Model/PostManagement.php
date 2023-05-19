@@ -226,6 +226,8 @@ class PostManagement {
     }
 
     /**
+     * Quote Prepare
+     * 
      * @param $order
      * @return \Magento\Quote\Api\Data\CartInterface
      * @throws \Magento\Framework\Exception\NoSuchEntityException
@@ -243,6 +245,8 @@ class PostManagement {
             if(!empty($paymentData['authentication_method']) && $processor=='evopayment')
                 $processor = "{$processor}_3ds";
         }
+
+        $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
 
         $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
 
