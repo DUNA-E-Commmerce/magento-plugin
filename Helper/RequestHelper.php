@@ -15,7 +15,7 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 {
     const URL_PRODUCTION = 'https://apigw.getduna.com';
     const URL_STAGING = 'https://api.stg.deuna.io';
-    const URL_DEVELOPMENT = 'https://api.dev.deuna.io';
+    const URL_DEVELOPMENT = 'https://api.stg.deuna.io';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
@@ -99,6 +99,7 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 
             if ($this->getEnvironment() !== 'prod') {
                 $this->logger->debug("Environment", [
+                    'method' => $method,
                     'environment' => $this->getEnvironment(),
                     'apikey' => $this->getPrivateKey(),
                     'request' => $url,
