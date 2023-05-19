@@ -248,7 +248,7 @@ class PostManagement {
 
         $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
 
-        $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
+        $quote->getPayment()->setMethod('deunacheckout');
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
@@ -313,8 +313,7 @@ class PostManagement {
             $orderState = \Magento\Sales\Model\Order::STATE_PROCESSING;
             $order->setState($orderState)
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                  ->setTotalPaid($totalAmount)
-                  ->setPaymentMethod('deunacheckout');
+                  ->setTotalPaid($totalAmount);
 
             $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PROCESSING");
 
@@ -322,8 +321,7 @@ class PostManagement {
         } elseif ($payment_status == 'authorized') {
             $orderState = \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT;
             $order->setState($orderState)
-                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
-                  ->setPaymentMethod('deunacheckout');
+                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
 
             $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PENDING PAYMENT");
 

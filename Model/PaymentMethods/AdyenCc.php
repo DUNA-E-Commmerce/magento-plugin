@@ -15,4 +15,5 @@ class AdyenCc extends AbstractMethod
      * @var string
      */
     protected $_code = 'adyen_cc';
+    protected $_canAuthorize = true;
 }

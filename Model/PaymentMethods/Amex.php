@@ -15,4 +15,5 @@ class Amex extends AbstractMethod
      * @var string
      */
     protected $_code = 'amex_hpf';
+    protected $_canAuthorize = true;
 }
