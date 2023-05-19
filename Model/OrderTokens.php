@@ -167,8 +167,6 @@ class OrderTokens
         $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-
-        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -371,12 +369,12 @@ class OrderTokens
         $lat = 0;
         $long = 0;
 
+        $this->logger->debug("Shipping method {$shippingMethod} selected");
+
         /**
          * Used when pickup option is selected in BB&B
          */
         if($shippingMethod == "bopis_bopis") {
-            $this->logger->info('BB&B / Pickup was selected');
-
             $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
             $nameStore =  $this->replace_null($stores->getName(),"información no disponible");
             $addressStore = $this->replace_null($stores->getStreet()." ".$stores->getNumber(),"información no disponible");

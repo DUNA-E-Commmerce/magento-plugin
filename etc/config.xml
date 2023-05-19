@@ -9,6 +9,34 @@
                 <order_status>pending</order_status>
                 <is_gateway>1</is_gateway>
             </deunacheckout>
+            <adyen_cc>
+                <model>DUna\Payments\Model\PaymentMethods\AdyenCc</model>
+                <active>1</active>
+                <title>Adyen Credit Card</title>
+                <order_status>pending</order_status>
+                <is_gateway>1</is_gateway>
+            </adyen_cc>
+            <tns_hpf>
+                <model>DUna\Payments\Model\PaymentMethods\EvoStd</model>
+                <active>1</active>
+                <title>EVO Payment</title>
+                <order_status>pending</order_status>
+                <is_gateway>1</is_gateway>
+            </tns_hpf>
+            <amex_hpf>
+                <model>DUna\Payments\Model\PaymentMethods\Amex</model>
+                <active>1</active>
+                <title>AMEX</title>
+                <order_status>pending</order_status>
+                <is_gateway>1</is_gateway>
+            </amex_hpf>
+            <tns_hosted>
+                <model>DUna\Payments\Model\PaymentMethods\Evo3ds</model>
+                <active>1</active>
+                <title>EVO Payment (3DS)</title>
+                <order_status>pending</order_status>
+                <is_gateway>1</is_gateway>
+            </tns_hosted>
         </payment>
     </default>
 </config>

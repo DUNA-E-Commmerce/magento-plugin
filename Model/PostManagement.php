@@ -176,6 +176,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
                 $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
+                $payment->setAdditionalInformation('authentication_method', $paymentData['authentication_method']);
                 $payment->setAdditionalInformation('token', $token);
                 $payment->save();
                 
@@ -225,6 +226,8 @@ class PostManagement {
     }
 
     /**
+     * Quote Prepare
+     * 
      * @param $order
      * @return \Magento\Quote\Api\Data\CartInterface
      * @throws \Magento\Framework\Exception\NoSuchEntityException
@@ -234,6 +237,16 @@ class PostManagement {
         $quoteId = $order['order_id'];
 
         $quote = $this->cri->get($quoteId);
+
+        $paymentData = $order['payment']['data'];
+        $processor = $paymentData['processor'];
+
+        if(isset($paymentData['authentication_method'])) {
+            if(!empty($paymentData['authentication_method']) && $processor=='evopayment')
+                $processor = "{$processor}_3ds";
+        }
+
+        $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
 
         $quote->getPayment()->setMethod('deunacheckout');
 
@@ -300,8 +313,7 @@ class PostManagement {
             $orderState = \Magento\Sales\Model\Order::STATE_PROCESSING;
             $order->setState($orderState)
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                  ->setTotalPaid($totalAmount)
-                  ->setPaymentMethod('deunacheckout');
+                  ->setTotalPaid($totalAmount);
 
             $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PROCESSING");
 
@@ -309,8 +321,7 @@ class PostManagement {
         } elseif ($payment_status == 'authorized') {
             $orderState = \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT;
             $order->setState($orderState)
-                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
-                  ->setPaymentMethod('deunacheckout');
+                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
 
             $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PENDING PAYMENT");
 
@@ -551,5 +562,25 @@ class PostManagement {
 
         $transaction->save();
         $payment->save();
+    }
+
+    public function mapPaymentMethod($paymentMethod) {
+        switch($paymentMethod) {
+            case 'adyen':
+                return 'adyen_cc';
+                break;
+            case 'evopayment':
+                return 'tns_hpf';
+                break;
+            case 'amex':
+                return 'amex_hpf';
+                break;
+            case 'evopayment_3ds':
+                return 'tns_hosted';
+                break;
+            default:
+                return 'deunacheckout';
+                break;
+        }
     }
 }

@@ -15,12 +15,17 @@ use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Quote\Api\Data\ShippingMethodInterface;
 use Magento\Directory\Helper\Data as DirectoryHelper;
 use Magento\Directory\Model\Country;
+use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 /**
  * Class ShippingMethods
  */
 class ShippingMethods implements ShippingMethodsInterface
 {
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
+    const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
+
     /**
      * @var \Magento\Quote\Api\CartRepositoryInterface
      */
@@ -88,6 +93,11 @@ class ShippingMethods implements ShippingMethodsInterface
     private $json;
 
     /**
+     * @var LogtailHandler
+     */
+    protected $logger;
+
+    /**
      * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
      * @param \Magento\Quote\Model\Cart\ShippingMethodConverter $converter
      */
@@ -123,6 +133,8 @@ class ShippingMethods implements ShippingMethodsInterface
         $this->orderTokens = $orderTokens;
         $this->regionCollectionFactory = $regionCollectionFactory;
         $this->directoryHelper = $directoryHelper;
+        $this->logger = new Logger(self::LOGTAIL_SOURCE);
+        $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
     /**
@@ -153,10 +165,13 @@ class ShippingMethods implements ShippingMethodsInterface
 
         $freeShippingMinAmount = $this->getFreeShippingSubtotal();
 
-        $this->helper->log('debug','Free Shipping Min Amount:', [$freeShippingMinAmount]);
-        $this->helper->log('debug','shippingRates:', [$shippingRates]);
+        $this->logger->debug("Free Shipping Min Amount: {$freeShippingMinAmount}");
+        $this->logger->debug("shippingRates", [
+            'shippingRates' => $shippingRates,
+        ]);
 
         foreach ($shippingRates as $method) {
+            $this->logger->debug("Shipping Method: {$method->getMethodCode()}");
 
             if($method->getMethodCode() == 'freeshipping') {
 
@@ -171,6 +186,8 @@ class ShippingMethods implements ShippingMethodsInterface
                     ];
                 }
             } else {
+                if(in_array($method->getMethodCode(), ['bopis', 'giftrshipping']))
+                    continue;
 
                 if(!is_null($method->getMethodCode())) {
                     $shippingMethods['shipping_methods'][] = [
@@ -184,9 +201,6 @@ class ShippingMethods implements ShippingMethodsInterface
                 }
             }
         }
-
-
-        $this->helper->log('debug', 'Shipping Methods:', $shippingMethods);
 
         die($this->json->serialize($shippingMethods));
     }
@@ -229,8 +243,6 @@ class ShippingMethods implements ShippingMethodsInterface
 
         $order = $this->orderTokens->getBody($quote);
 
-        $this->helper->log('debug','Shipping Amount:',[$shippingAmount]);
-
         if(
             $order['order']['shipping_amount'] !== $shippingAmount ||
             $order['order']['shipping_amount'] > 0
@@ -241,10 +253,6 @@ class ShippingMethods implements ShippingMethodsInterface
 
             $order['order']['total_amount'] += $shippingAmount;
         }
-
-        $this->helper->log('debug','Order | Tax Amount:', [$order['order']['tax_amount']]);
-        $this->helper->log('debug','Order | Shipping Amount:', [$order['order']['shipping_amount']]);
-        $this->helper->log('debug','Order | Total Amount:', [$order['order']['total_amount']]);
 
         return $this->getJson($order);
     }
