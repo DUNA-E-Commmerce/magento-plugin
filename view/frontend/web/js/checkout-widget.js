@@ -11,24 +11,6 @@ function isStaging() {
     return hostname.includes('stg.') || hostname.includes('mcstaging.');
 }
 
-function updateCheckoutButton(radioElements,checkoutButton) {
-    console.log('enable or disabled');
-    for (var i = 0; i < radioElements.length; i++) {
-        if (radioElements[i].checked) {
-            checkoutButton.disabled = false;
-            return;
-        }
-    }
-    checkoutButton.disabled = true;
-}
-
-function addListenersToRadios(radioElements,checkoutButton) {
-    console.log('Add Listeners to Radios');
-    for (var i = 0; i < radioElements.length; i++) {
-        radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
-    }
-}
-
 if(isDev()) {
     env = 'Develop';
 } else if(isStaging()) {
@@ -69,18 +51,27 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
 
     window.DeunaCDL = DeunaCDL;
 
-    window.addEventListener('load', (event) => {
+    window.addEventListener('DOMContentLoaded', (event) => {
+        var blockShippingTop = document.getElementById('block-shipping-top');
+        var radioElements = blockShippingTop.querySelectorAll('input[type="radio"]');
+        var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
 
-        var shippingMethodForm = document.getElementById('block-shipping-top');
-    
-        if (shippingMethodForm != null) {
-            console.log('paso shippingMethodForm');
-            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
-            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
-            
-            updateCheckoutButton( radioElements, checkoutButton);
-            addListenersToRadios( radioElements, checkoutButton);
+        function handleClick() {
+            console.log("checkout ready");
+            for (var i = 0; i < radioElements.length; i++) {
+                if (radioElements[i].checked) {
+                    checkoutButton.disabled = false;
+                    return;
+                }
+            }
+            checkoutButton.disabled = true;
         }
+
+        for (var i = 0; i < radioElements.length; i++) {
+            radioElements[i].addEventListener('click', handleClick);
+        }
+
+        handleClick();
 
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
