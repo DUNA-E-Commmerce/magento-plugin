@@ -15,4 +15,7 @@ class PaymentMethod extends AbstractMethod
      * @var string
      */
     protected $_code = 'deunacheckout';
+    protected $_canInvoice = true;
+    protected $_canCapture = true;
+    protected $_canAuthorize = true;
 }

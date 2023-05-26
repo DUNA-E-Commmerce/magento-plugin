@@ -13,6 +13,7 @@ use Magento\Framework\App\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use DUna\Payments\Helper\Data;
+use DUna\Payments\Model\CreateInvoice;
 use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
@@ -200,6 +201,8 @@ class PostManagement {
                 $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
                     'response' => $output,
                 ]);
+
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId());
 
                 echo json_encode($output);
 

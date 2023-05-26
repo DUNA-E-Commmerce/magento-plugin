@@ -2,21 +2,23 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../Store/etc/config.xsd">
     <default>
         <payment>
+            <deunacheckout>
+                <model>DUna\Payments\Model\PaymentMethod</model>
+                <active>1</active>
+                <title>DEUNA Checkout</title>
+                <order_status>pending</order_status>
+            </deunacheckout>
             <adyen_cc>
                 <model>DUna\Payments\Model\PaymentMethods\AdyenCc</model>
                 <active>1</active>
                 <title>Adyen Credit Card</title>
                 <order_status>pending</order_status>
-                <can_authorize>1</can_authorize>
-                <can_capture>1</can_capture>
             </adyen_cc>
             <tns_hpf>
                 <model>DUna\Payments\Model\PaymentMethods\EvoStd</model>
                 <active>1</active>
                 <title>EVO Payment</title>
                 <order_status>pending</order_status>
-                <can_authorize>1</can_authorize>
-                <can_capture>1</can_capture>
             </tns_hpf>
             <amex_hpf>
                 <model>DUna\Payments\Model\PaymentMethods\Amex</model>
@@ -29,8 +31,6 @@
                 <active>1</active>
                 <title>EVO Payment (3DS)</title>
                 <order_status>pending</order_status>
-                <can_authorize>1</can_authorize>
-                <can_capture>1</can_capture>
             </tns_hosted>
         </payment>
     </default>
