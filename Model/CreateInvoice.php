@@ -34,11 +34,11 @@ class CreateInvoice
             $invoice->register();
             $invoice->save();
 
-            $transactionSave =
-                $this->transaction
-                     ->addObject($invoice)
-                     ->addObject($invoice->getOrder());
+            $transactionSave = $this->transaction
+                                    ->addObject($invoice)
+                                    ->addObject($invoice->getOrder());
             $transactionSave->save();
+
             $this->invoiceSender->send($invoice);
 
             $order->addCommentToStatusHistory(__('Factura #%1 creada satisfactoriamente.', $invoice->getId()))

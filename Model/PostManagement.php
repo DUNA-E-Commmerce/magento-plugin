@@ -223,6 +223,7 @@ class PostManagement {
             $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTrace(),
             ];
 
