@@ -112,7 +112,6 @@ class PostManagement {
         $this->deunaShipping = $deunaShipping;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
     }
 
     /**
@@ -144,6 +143,7 @@ class PostManagement {
 
             if ($active) {
                 $this->logger->debug("Quote ({$quote->getId()}) is active", [
+                    'processor' => $paymentProcessor,
                     'paymentStatus' => $payment_status,
                     'paymentMethod' => $paymentMethod,
                 ]);
@@ -218,6 +218,7 @@ class PostManagement {
             }
         } catch(Exception $e) {
             $err = [
+                'payload' => $bodyReq,
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
@@ -225,7 +226,14 @@ class PostManagement {
 
             $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
 
-            return json_encode($err);
+            return [
+                "status" => 'failed',
+                "message" => $e->getMessage(),
+                "code" => $e->getCode(),
+                "data" => [
+                    "order_id" => $orderId
+                ]
+            ];
         }
     }
 
@@ -298,6 +306,10 @@ class PostManagement {
     public function getToken()
     {
         $tokenResponse = $this->orderTokens->getToken();
+
+        if(!empty($tokenResponse['error'])) {
+            return json_encode($tokenResponse);
+        }
 
         $json = [
             'orderToken' => $tokenResponse['token'],
