@@ -13,6 +13,7 @@ use Magento\Framework\App\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use DUna\Payments\Helper\Data;
+use DUna\Payments\Model\CreateInvoice;
 use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
@@ -201,6 +202,8 @@ class PostManagement {
                     'response' => $output,
                 ]);
 
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId());
+
                 echo json_encode($output);
 
                 die();
@@ -220,6 +223,7 @@ class PostManagement {
             $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTrace(),
             ];
 
@@ -248,7 +252,9 @@ class PostManagement {
                 $processor = "{$processor}_3ds";
         }
 
-        $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
+        $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
+
+        $quote->getPayment()->setMethod('deunacheckout');
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
@@ -313,8 +319,7 @@ class PostManagement {
             $orderState = \Magento\Sales\Model\Order::STATE_PROCESSING;
             $order->setState($orderState)
                   ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                  ->setTotalPaid($totalAmount)
-                  ->setPaymentMethod('deunacheckout');
+                  ->setTotalPaid($totalAmount);
 
             $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PROCESSING");
 
@@ -322,8 +327,7 @@ class PostManagement {
         } elseif ($payment_status == 'authorized') {
             $orderState = \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT;
             $order->setState($orderState)
-                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
-                  ->setPaymentMethod('deunacheckout');
+                  ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
 
             $this->logger->debug("Order ({$order->getIncrementId()}) status changed to PENDING PAYMENT");
 
@@ -381,6 +385,20 @@ class PostManagement {
         $response = $this->orderTokens->request(json_encode($body));
 
         return json_encode($response);
+    }
+
+    public function isSuccessStatus($status)
+    {
+        switch ($status) {
+            case 'processed':
+            case 'authorized':
+            case 'captured':
+                return true;
+                break;
+            default:
+                return false;
+                break;
+        }
     }
 
     /**

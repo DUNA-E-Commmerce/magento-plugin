@@ -15,4 +15,5 @@ class EvoStd extends AbstractMethod
      * @var string
      */
     protected $_code = 'tns_hpf';
+    protected $_canAuthorize = true;
 }

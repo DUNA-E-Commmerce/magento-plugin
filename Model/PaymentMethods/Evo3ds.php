@@ -15,4 +15,5 @@ class Evo3ds extends AbstractMethod
      * @var string
      */
     protected $_code = 'tns_hosted';
+    protected $_canAuthorize = true;
 }
