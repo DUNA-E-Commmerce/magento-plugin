@@ -160,7 +160,6 @@ class OrderTokens
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
-        $this->logger->debug('Function called: '.__CLASS__.'\\'.__FUNCTION__);
         $this->imageHelper = $imageHelper;
     }
 
@@ -328,7 +327,9 @@ class OrderTokens
                 'error' => $error,
             ]);
 
-            throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
+            return $response;
+
+            // throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
         }
 
         if (!empty($response['code'])) {
@@ -657,6 +658,15 @@ class OrderTokens
 
         $body = json_encode($this->getBody($quote));
 
+        $response = $this->request($body);
+
+        if(!empty($response['error'])) {
+            $quote->setIsActive(false);
+            $quote->save();
+
+            throw new LocalizedException(__($response['error']['description']));
+        }
+
         return $this->request($body);
     }
 
@@ -679,21 +689,23 @@ class OrderTokens
 
             return $token;
         } catch(NoSuchEntityException $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->error('Critical error in '.__FUNCTION__, $err);
 
-            return false;
+            return $err;
         } catch(Exception $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->error('Critical error in '.__FUNCTION__, );
 
-            return false;
+            return $err;
         }
     }
 

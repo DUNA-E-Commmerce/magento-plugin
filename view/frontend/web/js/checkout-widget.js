@@ -152,6 +152,11 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                 await self.configure(data);
                 // Trigger DEUNA Checkout Modal
                 await self.dunaCheckout.show();
+            })
+            .error(function (error, status, message) {
+                alert(`Error (${status}): ${message}`);
+
+                window.location.reload();
             });
         },
         preventClick: function () {
