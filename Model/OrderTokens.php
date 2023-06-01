@@ -7,7 +7,7 @@ use Magento\Checkout\Model\Session;
 use Magento\Shipping\Model\Config as shippingConfig;
 use Magento\Framework\HTTP\Adapter\Curl;
 use Magento\Framework\Exception\LocalizedException;
-use Zend_Http_Client;
+use Laminas\Http\Request;
 use Magento\Framework\Serialize\Serializer\Json;
 use DUna\Payments\Helper\Data;
 use Exception;
@@ -277,7 +277,7 @@ class OrderTokens
      */
     public function request($body)
     {
-        $method = Zend_Http_Client::POST;
+        $method = Request::METHOD_POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
         $headers = $this->getHeaders();
