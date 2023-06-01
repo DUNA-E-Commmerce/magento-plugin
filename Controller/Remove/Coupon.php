@@ -43,6 +43,7 @@ class Coupon extends Action implements CsrfAwareActionInterface
 
     public function execute() {
         $orderId = $this->getRequest()->getParam('order');
-        return $this->checkoutInterface->removecoupon($orderId);
+        $couponCode = $this->getRequest()->getParam('coupon');
+        return $this->checkoutInterface->removecoupon($orderId, $couponCode);
     }
 }

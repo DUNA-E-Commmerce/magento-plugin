@@ -9,20 +9,13 @@
         }
     ],
     "require": {
-        "php": ">=7.4||<=8"
+        "php": ">=7.4||<=8",
+        "logtail/monolog-logtail": "^0.1.5"
     },
     "type": "magento2-module",
-    "version": "1.0.0",
     "license": "proprietary",
     "keywords": ["checkout", "payment"],
     "homepage": "https://deuna.com",
-    "repositories": {
-        "private-packagist": {
-            "type": "composer",
-            "url": "https://repo.packagist.com/deuna/"
-        },
-        "packagist.org": false
-    },
     "autoload": {
         "files": [
             "registration.php"

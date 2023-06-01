@@ -71,12 +71,19 @@ class Data extends AbstractHelper
 
         $domain = $storeManager->getStore()->getBaseUrl();
 
-        if(str_contains($domain, 'dev.')) {
-            return 'develop';
-        } else if(str_contains($domain, 'stg.')) {
-            return 'staging';
-        } else {
-            return 'production';
+        switch($domain) {
+            case str_contains($domain, 'dev.'):
+                return 'staging';
+                break;
+            case str_contains($domain, 'local.'):
+                return 'develop';
+                break;
+            case str_contains($domain, 'stg.'):
+                return 'staging';
+                break;
+            default:
+                return 'production';
+                break;
         }
     }
 
@@ -89,5 +96,16 @@ class Data extends AbstractHelper
      */
     public function log($type, $message, array $context = []) {
         $this->logger->{$type}($message, $context);
+    }
+
+    /**
+     * @param $price
+     * @return int
+     */
+    public function priceFormat($price): int
+    {
+        $priceFix = number_format(is_null($price) ? 0 : $price, 2, '.', '');
+
+        return (int) round($priceFix * 100, 1 , PHP_ROUND_HALF_UP);;
     }
 }

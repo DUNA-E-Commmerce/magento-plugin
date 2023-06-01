@@ -13,4 +13,9 @@ interface PostManagementInterface {
      * @return mixed
      */
     public function getToken();
+
+    /**
+     * @return mixed
+     */
+    public function captureTransaction(int $orderId);
 }
