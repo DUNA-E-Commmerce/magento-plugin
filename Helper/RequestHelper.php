@@ -9,7 +9,7 @@ use Magento\Framework\HTTP\Adapter\Curl;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use DUna\Payments\Helper\Data;
-use Zend_Http_Client;
+use Laminas\Http\Request;
 
 class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
 {
@@ -74,22 +74,22 @@ class RequestHelper extends \Magento\Framework\App\Helper\AbstractHelper
         try {
             switch ($method) {
                 case 'POST':
-                    $method = Zend_Http_Client::POST;
+                    $method = Request::METHOD_POST;
                     break;
                 case 'PUT':
-                    $method = Zend_Http_Client::PUT;
+                    $method = Request::METHOD_PUT;
                     break;
                 case 'DELETE':
-                    $method = Zend_Http_Client::DELETE;
+                    $method = Request::METHOD_DELETE;
                     break;
                 case 'HEAD':
-                    $method = Zend_Http_Client::HEAD;
+                    $method = Request::METHOD_HEAD;
                     break;
                 case 'OPTIONS':
-                    $method = Zend_Http_Client::OPTIONS;
+                    $method = Request::METHOD_OPTIONS;
                     break;
                 default:
-                    $method = Zend_Http_Client::GET;
+                    $method = Request::METHOD_GET;
                     break;
             }
 
