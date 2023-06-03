@@ -7,7 +7,7 @@ use Magento\Checkout\Model\Session;
 use Magento\Shipping\Model\Config as shippingConfig;
 use Magento\Framework\HTTP\Adapter\Curl;
 use Magento\Framework\Exception\LocalizedException;
-use Zend_Http_Client;
+use Laminas\Http\Request;
 use Magento\Framework\Serialize\Serializer\Json;
 use DUna\Payments\Helper\Data;
 use Exception;
@@ -34,7 +34,7 @@ class OrderTokens
 
     const URL_PRODUCTION = 'https://apigw.getduna.com/merchants/orders';
     const URL_STAGING = 'https://api.stg.deuna.io/merchants/orders';
-    const URL_DEVELOPMENT = 'https://api.dev.deuna.io/merchants/orders';
+    const URL_DEVELOPMENT = 'https://api.stg.deuna.io/merchants/orders';
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
@@ -167,6 +167,7 @@ class OrderTokens
         $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
+        $this->imageHelper = $imageHelper;
     }
 
     /**
@@ -200,7 +201,7 @@ class OrderTokens
          * Merchant Dev: MAGENTO
          * Used for local development
          */
-        $devPrivateKey = 'd09ae647fceb2a30e6fb091e512e7443b092763a13f17ed15e150dc362586afd92571485c24f77a4a3121bc116d8083734e27079a25dc44493496198b84f';
+        $devPrivateKey = 'ab88c4b4866150ebbce7599c827d00f9f238c34e42baa095c9b0b6233e812ba54ef13d1b5ce512e7929eb4804b0218365c1071a35a85311ff3053c5e23a6';
 
         if ($env == 'develop') {
             return $devPrivateKey;
@@ -276,7 +277,7 @@ class OrderTokens
      */
     public function request($body)
     {
-        $method = Zend_Http_Client::POST;
+        $method = Request::METHOD_POST;
         $url = $this->getUrl();
         $http_ver = '1.1';
         $headers = $this->getHeaders();
@@ -325,7 +326,9 @@ class OrderTokens
                 'error' => $error,
             ]);
 
-            throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
+            return $response;
+
+            // throw new LocalizedException(__('Error returned with request to ' . $url . '. Code: ' . $error['code'] . ' Error: ' . $error['description']));
         }
 
         if (!empty($response['code'])) {
@@ -663,6 +666,15 @@ class OrderTokens
 
         $body = json_encode($this->getBody($quote));
 
+        $response = $this->request($body);
+
+        if(!empty($response['error'])) {
+            $quote->setIsActive(false);
+            $quote->save();
+
+            throw new LocalizedException(__($response['error']['description']));
+        }
+
         return $this->request($body);
     }
 
@@ -675,6 +687,8 @@ class OrderTokens
         try {
             $this->logger->info('Starting tokenization');
 
+            $this->getPaymentMethodList();
+
             $token = $this->tokenize();
 
             $this->logger->info("Token Generated ({$token['token']})", [
@@ -683,21 +697,23 @@ class OrderTokens
 
             return $token;
         } catch(NoSuchEntityException $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->error('Critical error in '.__FUNCTION__, $err);
 
-            return false;
+            return $err;
         } catch(Exception $e) {
-            $this->logger->error('Critical error in '.__FUNCTION__, [
+            $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
-            ]);
+            ];
+            $this->logger->error('Critical error in '.__FUNCTION__, );
 
-            return false;
+            return $err;
         }
     }
 
@@ -705,5 +721,29 @@ class OrderTokens
         return $this->helper->getEnv();
     }
 
-    
+    private function getPaymentMethodList()
+    {
+        $objectManager = ObjectManager::getInstance();
+        $scope = $objectManager->create('\Magento\Framework\App\Config\ScopeConfigInterface');
+        $methodList = $scope->getValue('payment');
+
+        $output = [];
+
+        foreach( $methodList as $code => $_method )
+        {
+            if( isset($_method['active']) && $_method['active'] == 1 ) {
+                $output[] = [
+                    'code' => $code,
+                    'method' => $_method,
+                ];
+            }
+        }
+
+        $this->logger->debug('Payment Method List', $output);
+    }
+
+    private function replace_null($value, $replace) {
+        if (is_null($value)) return $replace;
+        return $value;
+    }
 }
