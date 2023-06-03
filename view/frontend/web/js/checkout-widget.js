@@ -126,7 +126,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
         configure: async function (data) {
             if(env!='Prod')
                 console.log(data)
-            
+
                 const obj = JSON.parse(data);
 
             let config = {
@@ -140,7 +140,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
         show: function () {
             if(env!='Prod')
                 console.debug('Tokenize DEUNA Checkout');
-                
+
             const self = this,
                   tokenUrl = Url.build('rest/V1/DUna/token');
 
@@ -155,13 +155,18 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                 await self.configure(data);
                 // Trigger DEUNA Checkout Modal
                 await self.dunaCheckout.show();
+            })
+            .error(function (error, status, message) {
+                alert(`Error (${status}): ${message}`);
+
+                window.location.reload();
             });
         },
         preventClick: function () {
             const self = this;
 
             this.hasEnable(false);
-            
+
             setTimeout(function () {
                 self.hasEnable(true);
             }, 5000)

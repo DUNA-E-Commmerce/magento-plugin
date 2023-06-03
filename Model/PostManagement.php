@@ -2,19 +2,20 @@
 namespace DUna\Payments\Model;
 
 use Magento\Framework\Webapi\Rest\Request;
-use DUna\Payments\Model\OrderTokens;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Quote\Model\QuoteFactory;
 use Magento\Quote\Model\QuoteFactory as Quote;
 use Magento\Quote\Api\CartRepositoryInterface as CRI;
-use DUna\Payments\Helper\Data;
-use DUna\Payments\Model\Order\ShippingMethods;
 use Exception;
 use Magento\Customer\Model\CustomerFactory;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Framework\App\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use DUna\Payments\Helper\Data;
+use DUna\Payments\Model\CreateInvoice;
+use DUna\Payments\Model\Order\ShippingMethods;
+use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 
@@ -31,8 +32,12 @@ class PostManagement {
         'cancel' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_VOID,
     ];
 
+    /**
+     * Payment code
+     *
+     * @var string
+     */
     protected $_code = 'deunacheckout';
-
     /**
      * @var Request
      */
@@ -141,6 +146,7 @@ class PostManagement {
 
             if ($active) {
                 $this->logger->debug("Quote ({$quote->getId()}) is active", [
+                    'processor' => $paymentProcessor,
                     'paymentStatus' => $payment_status,
                     'paymentMethod' => $paymentMethod,
                 ]);
@@ -179,7 +185,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('authentication_method', $paymentData['authentication_method']);
                 $payment->setAdditionalInformation('token', $token);
                 $payment->save();
-                
+
                 $mgOrder->save();
 
                 $newOrderId = $mgOrder->getIncrementId();
@@ -196,6 +202,8 @@ class PostManagement {
                 $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
                     'response' => $output,
                 ]);
+
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId());
 
                 echo json_encode($output);
 
@@ -214,14 +222,23 @@ class PostManagement {
             }
         } catch(Exception $e) {
             $err = [
+                'payload' => $bodyReq,
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTrace(),
             ];
 
             $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
 
-            return json_encode($err);
+            return [
+                "status" => 'failed',
+                "message" => $e->getMessage(),
+                "code" => $e->getCode(),
+                "data" => [
+                    "order_id" => $orderId
+                ]
+            ];
         }
     }
 
@@ -296,6 +313,10 @@ class PostManagement {
     public function getToken()
     {
         $tokenResponse = $this->orderTokens->getToken();
+
+        if(!empty($tokenResponse['error'])) {
+            return json_encode($tokenResponse);
+        }
 
         $json = [
             'orderToken' => $tokenResponse['token'],
@@ -408,6 +429,30 @@ class PostManagement {
         }
     }
 
+    public function captureDeuna($payment)
+    {
+
+        $orderToken = $payment->getAdditionalInformation('token');
+
+        $endpoint = "/merchants/orders/{$orderToken}/capture";
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+        ];
+
+        $body = [
+            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
+        ];
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
+
+        return $response;
+    }
+
     /**
      * Capture Payment
      *
@@ -479,30 +524,6 @@ class PostManagement {
 
             return $err;
         }
-    }
-
-    public function captureDeuna($payment)
-    {
-
-        $orderToken = $payment->getAdditionalInformation('token');
-
-        $endpoint = "/merchants/orders/{$orderToken}/capture";
-
-        $headers = [
-            'Accept: application/json',
-            'Content-Type: application/json',
-        ];
-
-        $body = [
-            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
-        ];
-
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
-
-        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
-
-        return $response;
     }
 
     public function createTransaction($payment, $type = 'approved', $parentId = null, $amount = 0, $additionalInfo = [])

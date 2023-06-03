@@ -12,7 +12,7 @@ class OrderUpdateObserver implements ObserverInterface
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
 
     protected $logger;
-    
+
     public function __construct() {
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
@@ -37,7 +37,6 @@ class OrderUpdateObserver implements ObserverInterface
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
             $orderDeunaStatus = $payment->getAdditionalInformation('deuna_payment_status');
-            
             $this->logger->debug('Cancel Order', [
                 'orderId' => $orderId,
                 'orderToken' => $orderToken,
@@ -64,6 +63,10 @@ class OrderUpdateObserver implements ObserverInterface
     {
         $endpoint = "/merchants/orders/{$orderToken}/cancel";
         
+        if ($orderDeunaStatus === 'authorized'){
+            $endpoint = "/merchants/orders/{$orderToken}/void";
+        }
+
         if ($orderDeunaStatus === 'authorized'){
             $endpoint = "/merchants/orders/{$orderToken}/void";
         }
