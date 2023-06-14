@@ -29,6 +29,31 @@ function addListenersToRadios(radioElements,checkoutButton) {
     }
 }
 
+function verifySelectedRadioShipping(checkoutButton) {
+    const element = document.querySelector('[id*="shipping-method-forms"]');
+
+    if (element) {
+        const radioButtons = document.querySelectorAll('#' + element.id + ' input[type="radio"]');
+        const isRadioSelected = Array.from(radioButtons).some(radio => radio.checked);
+
+        if (isRadioSelected) {
+            checkoutButton.disabled = false;
+        } else {
+            checkoutButton.disabled = true;
+        }
+
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                checkoutButton.disabled = false;
+            });
+        });
+
+    } else {
+        console.log('error Buscando formulario')
+    }
+
+}
+
 if(isDev()) {
     env = 'Develop';
 } else if(isStaging()) {
@@ -69,7 +94,14 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
 
     window.DeunaCDL = DeunaCDL;
 
+    setTimeout(function() {
+        var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
+        checkoutButton2.disabled = true;
+    }, 500);
+
     window.addEventListener('load', (event) => {
+        
+       
 
         var shippingMethodForm = document.getElementById('block-shipping-top');
     
@@ -77,7 +109,8 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
             console.log('paso shippingMethodForm');
             var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
             var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
-            
+            checkoutButton.disabled = true;
+
             updateCheckoutButton( radioElements, checkoutButton);
             addListenersToRadios( radioElements, checkoutButton);
         }
@@ -99,6 +132,10 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                         parentElement.setAttribute('hidden', 'true');
                     }
                     console.log('La petición GET ha finalizado con exito!');
+                    
+                    setTimeout(function() {
+                        verifySelectedRadioShipping(checkoutButton);
+                    }, 1500);
 
                 } else {
                     console.log('La petición GET ha finalizado con un error.');
