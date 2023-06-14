@@ -13,6 +13,10 @@ class CreateInvoice
     protected $transaction;
     protected $invoiceSender;
 
+    const STATE_OPEN = 1;
+    const STATE_PAID = 2;
+    const STATE_CANCELED = 3;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         InvoiceService $invoiceService,
@@ -25,13 +29,14 @@ class CreateInvoice
         $this->invoiceSender = $invoiceSender;
     }
 
-    public function execute($orderId)
+    public function execute($orderId, $state = self::STATE_OPEN)
     {
         $order = $this->orderRepository->get($orderId);
 
         if ($order->canInvoice()) {
             $invoice = $this->invoiceService->prepareInvoice($order);
             $invoice->register();
+            $invoice->setState($state);
             $invoice->save();
 
             $transactionSave = $this->transaction

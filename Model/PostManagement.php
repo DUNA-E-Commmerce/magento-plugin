@@ -152,6 +152,8 @@ class PostManagement {
                 if($paymentMethod!='cash') {
                     if($payment_status!='processed' && $payment_status!='authorized')
                         return;
+
+                    $invoiceStatus = 'paid';
                 }
 
                 $mgOrder = $this->quoteManagement->submit($quote);
