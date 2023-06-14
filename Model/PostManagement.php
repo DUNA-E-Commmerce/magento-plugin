@@ -267,7 +267,7 @@ class PostManagement {
 
         $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
 
-        $quote->getPayment()->setMethod('deunacheckout');
+        $quote->getPayment()->setMethod($processor);
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
