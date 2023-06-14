@@ -24,6 +24,8 @@ class OrderUpdateObserver implements ObserverInterface
         $state = $order->getState();
         $status = $order->getStatus();
 
+        $this->logger->debug('OrderUpdateObserver: ' . $state . ' - ' . $status);
+
         if ($state === 'canceled' || $status === 'canceled'){
             $orderId = $order->getId();
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
@@ -35,7 +37,6 @@ class OrderUpdateObserver implements ObserverInterface
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
             $orderDeunaStatus = $payment->getAdditionalInformation('deuna_payment_status');
-
             $this->logger->debug('Cancel Order', [
                 'orderId' => $orderId,
                 'orderToken' => $orderToken,
@@ -61,6 +62,10 @@ class OrderUpdateObserver implements ObserverInterface
     private function cancelOrder($orderToken, $orderDeunaStatus)
     {
         $endpoint = "/merchants/orders/{$orderToken}/cancel";
+        
+        if ($orderDeunaStatus === 'authorized'){
+            $endpoint = "/merchants/orders/{$orderToken}/void";
+        }
 
         if ($orderDeunaStatus === 'authorized'){
             $endpoint = "/merchants/orders/{$orderToken}/void";
@@ -77,3 +82,4 @@ class OrderUpdateObserver implements ObserverInterface
     }
 
 }
+

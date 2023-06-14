@@ -21,12 +21,13 @@ use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Checkout\Api\Data\TotalsInformationInterface;
 use Magento\Checkout\Api\TotalsInformationManagementInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Entrepids\StoresLocator\Model\StoresFactory;
 use Magento\Catalog\Helper\Image;
 use Magento\Framework\App\ObjectManager;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 class OrderTokens
 {
@@ -37,8 +38,11 @@ class OrderTokens
     const CONTENT_TYPE = 'application/json';
     const PRIVATE_KEY_PRODUCTION = 'private_key_production';
     const PRIVATE_KEY_STAGING = 'private_key_stage';
-    const LOGTAIL_SOURCE = 'plataformas_magento';
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
+
+    /** @var Entrepids\StoresLocator\Model\StoresFactory */
+    private $_stores;
 
     /**
      * @var Session
@@ -139,6 +143,7 @@ class OrderTokens
         TotalsInformationInterface $totalsInformationInterface,
         TotalsInformationManagementInterface $totalsInformationManagementInterface,
         Image $imageHelper,
+        StoresFactory $stores
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->curl = $curl;
@@ -158,32 +163,35 @@ class OrderTokens
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->totalsInformationInterface = $totalsInformationInterface;
         $this->totalsInformationManagementInterface = $totalsInformationManagementInterface;
+        $this->imageHelper = $imageHelper;
+        $this->_stores = $stores;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
         $this->imageHelper = $imageHelper;
     }
 
     /**
-     * Returns the URL based on the current environment.
-     *
-     * @return string The URL for the current environment.
+     * @return string
      */
     private function getUrl(): string
     {
-        switch ($this->getEnvironment()) {
+        $env = $this->getEnvironment();
+
+        switch($env) {
             case 'develop':
                 return self::URL_DEVELOPMENT;
+                break;
             case 'staging':
                 return self::URL_STAGING;
+                break;
             default:
                 return self::URL_PRODUCTION;
+                break;
         }
     }
 
     /**
-     * Returns the private key for the current environment.
-     *
-     * @return string The private key for the current environment.
+     * @return string
      */
     public function getPrivateKey(): string
     {
@@ -206,11 +214,8 @@ class OrderTokens
         return $this->encryptor->decrypt($privateKey);
     }
 
-
     /**
-     * Returns the headers required for API requests.
-     *
-     * @return array The headers required for API requests.
+     * @return string[]
      */
     private function getHeaders(): array
     {
@@ -221,29 +226,24 @@ class OrderTokens
     }
 
     /**
-     * Returns the address data for the specified address ID.
+     * @param $addressId
      *
-     * @param int $addressId The ID of the address.
-     *
-     * @return \Magento\Customer\Api\Data\AddressInterface|null The address data or null if the address could not be found.
+     * @return \Magento\Customer\Api\Data\AddressInterface
      */
-    public function getAddressData(int $addressId): ?\Magento\Customer\Api\Data\AddressInterface
+    public function getAddressData($addressId)
     {
-        try {
-            return $this->addressRepository->getById($addressId);
-        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $this->logger->error('Could not find address with ID ' . $addressId);
+        $addressData = null;
 
-            return null;
+        try {
+            $addressData = $this->addressRepository->getById($addressId);
         } catch (\Exception $e) {
-            $this->logger->error('An error occurred while retrieving address with ID ' . $addressId, [
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
             ]);
-
-            return null;
         }
+        return $addressData;
     }
 
     /**
@@ -320,7 +320,6 @@ class OrderTokens
 
         if(!empty($response['error'])) {
             $error = $response['error'];
-            $msg = "Error on DEUNA Token ({$error['code']} | {$url})";
 
             $this->logger->debug('Error on DEUNA Token', [
                 'url' => $url,
@@ -370,6 +369,19 @@ class OrderTokens
 
         $this->logger->debug("Shipping method {$shippingMethod} selected");
 
+        /**
+         * Used when pickup option is selected in BB&B
+         */
+        if($shippingMethod == "bopis_bopis") {
+            $stores = $this->_stores->create()->load($quote->getBopisJdaStoreCode(),'jda_store_code');
+            $nameStore =  $this->replace_null($stores->getName(),"información no disponible");
+            $addressStore = $this->replace_null($stores->getStreet()." ".$stores->getNumber(),"información no disponible");
+            $lat = $this->replace_null($stores->getLat(),0);
+            $long = $this->replace_null($stores->getLon(),0);
+
+            $shippingMethodSelected = "pickup";
+        }
+
         $discount_amount = $this->getDiscountAmount($quote);
         $subtotal_amount = $quote->getSubtotal();
         $subtotal_amount -= $discount_amount;
@@ -417,10 +429,8 @@ class OrderTokens
     }
 
     /**
-     * This function retrieves the discounts related to a quote object.
-     *
-     * @param $quote The quote object to get discounts for.
-     * @return array|null Returns an array containing discount information if a coupon code is applied, otherwise null.
+     * @param $quote
+     * @return array|void
      */
     private function getDiscounts($quote)
     {
@@ -448,7 +458,6 @@ class OrderTokens
             ];
             return $discount;
         }
-        return null;
     }
 
     /**
@@ -587,10 +596,8 @@ class OrderTokens
     }
 
     /**
-     * This function formats a price to a fixed point representation with two decimal places and returns it as an integer.
-     *
-     * @param $price The price to format.
-     * @return int Returns the formatted price as an integer.
+     * @param $price
+     * @return int
      */
     public function priceFormat($price): int
     {
@@ -600,9 +607,7 @@ class OrderTokens
     }
 
     /**
-     * This function returns the weight unit of the store as configured in the system configuration.
-     *
-     * @return string Returns the weight unit as a string.
+     * @return string
      */
     private function getWeightUnit(): string
     {
@@ -610,14 +615,12 @@ class OrderTokens
     }
 
     /**
-     * This function returns the URL for the thumbnail image of the specified item.
-     *
-     * @param $item The item for which to retrieve the thumbnail image URL.
-     * @return string Returns the URL for the thumbnail image as a string.
+     * @param $item
+     * @return string
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     private function getImageUrl($item): string
     {
-        /** @var ProductRepositoryInterface $productRepository */
         $productRepository = ObjectManager::getInstance()->get(ProductRepositoryInterface::class);
         $product = $productRepository->get($item->getProduct()->getSku());
 
@@ -630,7 +633,7 @@ class OrderTokens
                 ->getUrl();
         }
 
-        return $this->imageHelper->init($product, 'product_page_image_small')->getUrl();;
+        return $this->imageHelper->init($product, 'product_page_image_small')->getUrl();
     }
 
     /**

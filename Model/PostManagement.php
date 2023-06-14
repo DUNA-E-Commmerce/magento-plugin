@@ -21,7 +21,7 @@ use Logtail\Monolog\LogtailHandler;
 
 class PostManagement {
 
-    const LOGTAIL_SOURCE = 'plataformas_magento';
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
     const TRANSACTION_TYPES = [
         'approved' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE,
@@ -142,6 +142,8 @@ class PostManagement {
 
             $active = $quote->getIsActive();
 
+            $output = [];
+
             if ($active) {
                 $this->logger->debug("Quote ({$quote->getId()}) is active", [
                     'processor' => $paymentProcessor,
@@ -175,7 +177,6 @@ class PostManagement {
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
                 $payment = $mgOrder->getPayment();
-
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
@@ -244,6 +245,8 @@ class PostManagement {
     }
 
     /**
+     * Quote Prepare
+     * 
      * @param $order
      * @return \Magento\Quote\Api\Data\CartInterface
      * @throws \Magento\Framework\Exception\NoSuchEntityException
@@ -387,20 +390,6 @@ class PostManagement {
         $quote->getShippingAddress()->addData($shipping_address);
     }
 
-    public function sendOrderId($orderId, $status = 'succeeded')
-    {
-        $body = array(
-            "status" => $status,
-            "data" => array(
-                "order_id" => $orderId
-            )
-        );
-
-        $response = $this->orderTokens->request(json_encode($body));
-
-        return json_encode($response);
-    }
-
     public function isSuccessStatus($status)
     {
         switch ($status) {
@@ -440,6 +429,30 @@ class PostManagement {
 
             return $err;
         }
+    }
+
+    public function captureDeuna($payment)
+    {
+
+        $orderToken = $payment->getAdditionalInformation('token');
+
+        $endpoint = "/merchants/orders/{$orderToken}/capture";
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+        ];
+
+        $body = [
+            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
+        ];
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
+
+        return $response;
     }
 
     /**
@@ -513,29 +526,6 @@ class PostManagement {
 
             return $err;
         }
-    }
-
-    public function captureDeuna($payment){
-
-        $orderToken = $payment->getAdditionalInformation('token');
-
-        $endpoint = "/merchants/orders/{$orderToken}/capture";
-
-        $headers = [
-            'Accept: application/json',
-            'Content-Type: application/json',
-        ];
-
-        $body = [
-            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
-        ];
-
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
-
-        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
-
-        return $response;
     }
 
     public function createTransaction($payment, $type = 'approved', $parentId = null, $amount = 0, $additionalInfo = [])

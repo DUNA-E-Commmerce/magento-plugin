@@ -22,8 +22,40 @@ function updateCheckoutButton(radioElements,checkoutButton) {
     checkoutButton.disabled = true;
 }
 
+function addListenersToRadios(radioElements,checkoutButton) {
+    console.log('Add Listeners to Radios');
+    for (var i = 0; i < radioElements.length; i++) {
+        radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
+    }
+}
+
+function verifySelectedRadioShipping(checkoutButton) {
+    const element = document.querySelector('[id*="shipping-method-forms"]');
+
+    if (element) {
+        const radioButtons = document.querySelectorAll('#' + element.id + ' input[type="radio"]');
+        const isRadioSelected = Array.from(radioButtons).some(radio => radio.checked);
+
+        if (isRadioSelected) {
+            checkoutButton.disabled = false;
+        } else {
+            checkoutButton.disabled = true;
+        }
+
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                checkoutButton.disabled = false;
+            });
+        });
+
+    } else {
+        console.log('error Buscando formulario')
+    }
+
+}
+
 if(isDev()) {
-    env = 'Staging';
+    env = 'Develop';
 } else if(isStaging()) {
     env = 'Staging';
 } else {
@@ -44,9 +76,9 @@ let components = [
 let deunaEnv;
 
 if(isDev()) {
-    deunaEnv = 'staging';
-    components.push('https://cdn.stg.deuna.io/cdl/index.js');
-    components.push(`https://cdn.stg.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
+    deunaEnv = 'develop';
+    components.push('https://cdn.dev.deuna.io/cdl/index.js');
+    components.push(`https://cdn.dev.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
 } else if(isStaging()) {
     deunaEnv = 'staging';
     components.push('https://cdn.stg.deuna.io/cdl/index.js');
@@ -62,7 +94,27 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
 
     window.DeunaCDL = DeunaCDL;
 
+    setTimeout(function() {
+        var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
+        checkoutButton2.disabled = true;
+    }, 500);
+
     window.addEventListener('load', (event) => {
+        
+       
+
+        var shippingMethodForm = document.getElementById('block-shipping-top');
+    
+        if (shippingMethodForm != null) {
+            console.log('paso shippingMethodForm');
+            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
+            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
+            checkoutButton.disabled = true;
+
+            updateCheckoutButton( radioElements, checkoutButton);
+            addListenersToRadios( radioElements, checkoutButton);
+        }
+
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -70,9 +122,9 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                     var response = xhr.responseText;
                     var div = document.createElement('div');
                     div.innerHTML = response;
-
+    
                     var tdElements = div.querySelectorAll('td');
-
+    
                     if (tdElements.length > 0) {
                     } else {
                         var csMethodBopisBopis = document.getElementById('cs_method_bopis_bopis');
@@ -80,35 +132,23 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                         parentElement.setAttribute('hidden', 'true');
                     }
                     console.log('La petición GET ha finalizado con exito!');
+                    
+                    setTimeout(function() {
+                        verifySelectedRadioShipping(checkoutButton);
+                    }, 1500);
 
                 } else {
                     console.log('La petición GET ha finalizado con un error.');
                 }
             }
         };
-
+    
         var currentURL = window.location.href;
         var urlObject = new URL(currentURL);
         var domain = urlObject.origin;
-
+    
         xhr.open('GET', domain + '/storepickup/stores/index/?_=' + Date.now());
         xhr.send();
-    });
-
-    document.addEventListener("DOMContentLoaded", function() {
-        console.log('DOM Cargados');
-        var shippingMethodForm = document.getElementById('block-shipping-top');
-
-        if (shippingMethodForm != null) {
-            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
-            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
-
-            updateCheckoutButton( radioElements, checkoutButton);
-
-            for (var i = 0; i < radioElements.length; i++) {
-                radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
-            }
-        }
     });
 
     return Component.extend({
@@ -170,3 +210,4 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
         }
     });
 });
+

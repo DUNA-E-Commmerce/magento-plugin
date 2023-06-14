@@ -14,6 +14,10 @@
             <td><?=$paymentInfo->getAdditionalInformation('processor')?></td>
         </tr>
         <tr>
+            <td>Authentication Method</td>
+            <td><?=$paymentInfo->getAdditionalInformation('authentication_method')?></td>
+        </tr>
+        <tr>
             <td>Payment Method</td>
             <td><?=$paymentInfo->getAdditionalInformation('payment_method')?></td>
         </tr>
@@ -32,10 +36,6 @@
         <tr>
             <td>No. Installments</td>
             <td><?=$paymentInfo->getAdditionalInformation('number_of_installment')?></td>
-        </tr>
-        <tr>
-            <td>Authentication</td>
-            <td><?=$paymentInfo->getAdditionalInformation('authentication_method')?></td>
         </tr>
         <tr>
             <td>DEUNA Token</td>

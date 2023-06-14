@@ -23,7 +23,7 @@ use Logtail\Monolog\LogtailHandler;
  */
 class ShippingMethods implements ShippingMethodsInterface
 {
-    const LOGTAIL_SOURCE = 'plataformas_magento';
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
 
     /**
@@ -165,7 +165,13 @@ class ShippingMethods implements ShippingMethodsInterface
 
         $freeShippingMinAmount = $this->getFreeShippingSubtotal();
 
+        $this->logger->debug("Free Shipping Min Amount: {$freeShippingMinAmount}");
+        $this->logger->debug("shippingRates", [
+            'shippingRates' => $shippingRates,
+        ]);
+
         foreach ($shippingRates as $method) {
+            $this->logger->debug("Shipping Method: {$method->getMethodCode()}");
 
             if($method->getMethodCode() == 'freeshipping') {
 
@@ -180,6 +186,9 @@ class ShippingMethods implements ShippingMethodsInterface
                     ];
                 }
             } else {
+                if(in_array($method->getMethodCode(), ['bopis', 'giftrshipping']))
+                    continue;
+
                 if(!is_null($method->getMethodCode())) {
                     $shippingMethods['shipping_methods'][] = [
                         'code' => $method->getMethodCode(),
