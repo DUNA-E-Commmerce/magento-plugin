@@ -205,7 +205,7 @@ class PostManagement {
                     'response' => $output,
                 ]);
 
-                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId());
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), 2);
 
                 echo json_encode($output);
 
@@ -246,7 +246,7 @@ class PostManagement {
 
     /**
      * Quote Prepare
-     * 
+     *
      * @param $order
      * @return \Magento\Quote\Api\Data\CartInterface
      * @throws \Magento\Framework\Exception\NoSuchEntityException
