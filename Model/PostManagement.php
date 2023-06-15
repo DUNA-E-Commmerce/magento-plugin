@@ -155,7 +155,11 @@ class PostManagement {
                     if($payment_status!='processed' && $payment_status!='authorized')
                         return;
 
-                    $invoiceStatus = 'paid';
+                    if($payment_status=='processed') {
+                        $invoice_status = 2;
+                    } else {
+                        $invoice_status = 1;
+                    }
                 }
 
                 $mgOrder = $this->quoteManagement->submit($quote);
@@ -205,7 +209,7 @@ class PostManagement {
                     'response' => $output,
                 ]);
 
-                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), 2);
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
 
                 echo json_encode($output);
 
@@ -417,6 +421,12 @@ class PostManagement {
             $order = $this->orderRepository->get($orderId);
             $payment = $order->getPayment();
             $amount = $payment->getAmountAuthorized();
+
+            $invoiceData = $order->getInvoiceCollection();
+
+            $invoiceData = $invoiceData->getData();
+
+            $this->logger->info('Invoice State', $invoiceData->getState());
 
             return $this->capturePayment($payment, $amount);
         } catch (\Exception $e) {
