@@ -62,11 +62,8 @@ var verifyToAddListeners = function() {
             });
         });
         clearInterval(intervalId); 
-    } 
-};
-
-var intervalId = setInterval(verifyToAddListeners, 500);
-  
+    }
+};  
 
 if(isDev()) {
     env = 'Develop';
@@ -107,6 +104,8 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
     'use strict';
 
     window.DeunaCDL = DeunaCDL;
+
+    var intervalId = setInterval(verifyToAddListeners, 500);
 
     setTimeout(function() {
         var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
