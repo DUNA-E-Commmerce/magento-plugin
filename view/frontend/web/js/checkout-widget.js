@@ -12,7 +12,6 @@ function isStaging() {
 }
 
 function updateCheckoutButton(radioElements,checkoutButton) {
-    console.log('enable or disabled');
     for (var i = 0; i < radioElements.length; i++) {
         if (radioElements[i].checked) {
             checkoutButton.disabled = false;
@@ -23,7 +22,6 @@ function updateCheckoutButton(radioElements,checkoutButton) {
 }
 
 function addListenersToRadios(radioElements,checkoutButton) {
-    console.log('Add Listeners to Radios');
     for (var i = 0; i < radioElements.length; i++) {
         radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
     }
@@ -34,6 +32,12 @@ function verifySelectedRadioShipping(checkoutButton) {
 
     if (element) {
         const radioButtons = document.querySelectorAll('#' + element.id + ' input[type="radio"]');
+        
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                checkoutButton.disabled = false;
+            });
+        });
         const isRadioSelected = Array.from(radioButtons).some(radio => radio.checked);
 
         if (isRadioSelected) {
@@ -42,17 +46,24 @@ function verifySelectedRadioShipping(checkoutButton) {
             checkoutButton.disabled = true;
         }
 
-        radioButtons.forEach(radio => {
-            radio.addEventListener('change', function() {
-                checkoutButton.disabled = false;
-            });
-        });
-
     } else {
         console.log('error Buscando formulario')
     }
 
 }
+
+var verifyToAddListeners = function() {
+    var buttons = document.querySelectorAll('button.select-bopis-store');
+    if (buttons.length > 0) {
+        buttons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
+                checkoutButton2.disabled = false;
+            });
+        });
+        clearInterval(intervalId); 
+    }
+};  
 
 if(isDev()) {
     env = 'Develop';
@@ -94,22 +105,50 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
 
     window.DeunaCDL = DeunaCDL;
 
+    var intervalId = setInterval(verifyToAddListeners, 500);
+
     setTimeout(function() {
         var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
         checkoutButton2.disabled = true;
+        
+        let radioElement3 = document.getElementById('cs_method_bopis_bopis');
+        if (radioElement3) {
+            radioElement3.disabled = true;
+            radioElement3.addEventListener('change', function() {
+                console.log('El input radio ha sido seleccionado');
+            });
+        }
+        verifySelectedRadioShipping(checkoutButton2);
+
     }, 500);
+
+    setTimeout(function() {
+        var checkoutButton3 = document.getElementById('duna-checkout').querySelector('button');
+
+        let radioElement4 = document.getElementById('cs_method_bopis_bopis');
+        if (radioElement4) {
+            radioElement4.disabled = true;
+            radioElement4.addEventListener('change', function() {
+                console.log('El input radio ha sido seleccionado');
+            });
+        }
+        verifySelectedRadioShipping(checkoutButton3);
+
+    }, 700);
 
     window.addEventListener('load', (event) => {
         
-       
-
         var shippingMethodForm = document.getElementById('block-shipping-top');
     
         if (shippingMethodForm != null) {
-            console.log('paso shippingMethodForm');
             var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
             var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
             checkoutButton.disabled = true;
+
+            var radioElement2 = document.getElementById('cs_method_bopis_bopis');
+            if (radioElement2) {
+                radioElement2.disabled = true;
+            }
 
             updateCheckoutButton( radioElements, checkoutButton);
             addListenersToRadios( radioElements, checkoutButton);
@@ -122,6 +161,10 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                     var response = xhr.responseText;
                     var div = document.createElement('div');
                     div.innerHTML = response;
+                    var radioElement = document.getElementById('cs_method_bopis_bopis');
+                    if (radioElement) {
+                     radioElement.disabled = true;
+                    }
     
                     var tdElements = div.querySelectorAll('td');
     
@@ -131,11 +174,14 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                         var parentElement = csMethodBopisBopis.parentNode;
                         parentElement.setAttribute('hidden', 'true');
                     }
-                    console.log('La petición GET ha finalizado con exito!');
                     
                     setTimeout(function() {
                         verifySelectedRadioShipping(checkoutButton);
-                    }, 1500);
+                    }, 500);
+                    
+                    setTimeout(function() {
+                        verifySelectedRadioShipping(checkoutButton);
+                    }, 1000);
 
                 } else {
                     console.log('La petición GET ha finalizado con un error.');
