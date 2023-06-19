@@ -426,7 +426,7 @@ class PostManagement {
 
             $invoiceData = $invoiceData->getData();
 
-            $this->logger->info('Invoice State', $invoiceData->getState());
+            $this->logger->info('Invoice State', $invoiceData);
 
             return $this->capturePayment($payment, $amount);
         } catch (\Exception $e) {
