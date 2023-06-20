@@ -145,6 +145,8 @@ class PostManagement {
             $output = [];
 
             if ($active) {
+                $invoice_status = 1;
+
                 $this->logger->debug("Quote ({$quote->getId()}) is active", [
                     'processor' => $paymentProcessor,
                     'paymentStatus' => $payment_status,
@@ -157,8 +159,6 @@ class PostManagement {
 
                     if($payment_status=='processed') {
                         $invoice_status = 2;
-                    } else {
-                        $invoice_status = 1;
                     }
                 }
 
