@@ -287,7 +287,7 @@ class ShippingMethods implements ShippingMethodsInterface
         $shippingAddress = $quote->getShippingAddress();
 
         if (!$shippingAddress->getCountryId()) {
-            throw new StateException(__('The shipping address is missing. Set the address and try again.'));
+            throw new StateException(__('Verifica tu información de entrega y código postal.'));
         }
 
         $countriesAllowed = $this->getAllowedCountries();
@@ -321,32 +321,35 @@ class ShippingMethods implements ShippingMethodsInterface
 
     private function setShippingInfo($quote)
     {
-        $body = $this->request->getBodyParams();
+        try {
+            $body = $this->request->getBodyParams();
 
-        $regionId = $this->getRegionId($body['state_name']);
+            $regionId = $this->getRegionId($body['state_name']);
 
-        $shippingAddress = $quote->getShippingAddress();
-        $shippingAddress->setFirstname($body['first_name']);
-        $shippingAddress->setLastname($body['last_name']);
-        $shippingAddress->setTelephone($body['phone']);
-        $shippingAddress->setStreet($body['address1']);
-        $shippingAddress->setCity($body['city']);
-        $shippingAddress->setPostcode($body['zipcode']);
-        $shippingAddress->setCountryId($body['country_iso']);
-        $shippingAddress->setRegionId($regionId);
-        $shippingAddress->save();
+            $shippingAddress = $quote->getShippingAddress();
+            $shippingAddress->setFirstname($body['first_name']);
+            $shippingAddress->setLastname($body['last_name']);
+            $shippingAddress->setTelephone($body['phone']);
+            $shippingAddress->setStreet($body['address1']);
+            $shippingAddress->setCity($body['city']);
+            $shippingAddress->setPostcode($body['zipcode']);
+            $shippingAddress->setCountryId($body['country_iso']);
+            $shippingAddress->setRegionId($regionId);
+            $shippingAddress->save();
 
-        $billingAddress = $quote->getBillingAddress();
-        $billingAddress->setFirstname($body['first_name']);
-        $billingAddress->setLastname($body['last_name']);
-        $billingAddress->setTelephone($body['phone']);
-        $billingAddress->setStreet($body['address1']);
-        $billingAddress->setCity($body['city']);
-        $billingAddress->setPostcode($body['zipcode']);
-        $billingAddress->setCountryId($body['country_iso']);
-        $billingAddress->setRegionId($regionId);
-        $billingAddress->save();
-
+            $billingAddress = $quote->getBillingAddress();
+            $billingAddress->setFirstname($body['first_name']);
+            $billingAddress->setLastname($body['last_name']);
+            $billingAddress->setTelephone($body['phone']);
+            $billingAddress->setStreet($body['address1']);
+            $billingAddress->setCity($body['city']);
+            $billingAddress->setPostcode($body['zipcode']);
+            $billingAddress->setCountryId($body['country_iso']);
+            $billingAddress->setRegionId($regionId);
+            $billingAddress->save();
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(__('Verifica tu información de entrega y código postal.', $e->getMessage()));
+        }
     }
 
     /**
@@ -402,7 +405,7 @@ class ShippingMethods implements ShippingMethodsInterface
                     "taxable" => (bool)$quote->getStoreToQuoteRate()
                 ];
             } catch (\Exception $e) {
-                throw new CouldNotSaveException(__('The shipping method can\'t be set. %1', $e->getMessage()));
+                throw new CouldNotSaveException(__('Verifica tu información de entrega y código postal.', $e->getMessage()));
             }
         }
 
