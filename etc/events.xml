@@ -6,4 +6,7 @@
     <event name="sales_order_save_after">
         <observer name="order_update_observer" instance="DUna\Payments\Observer\OrderUpdateObserver" />
     </event>
+    <event name="controller_action_predispatch_checkout_index_index">
+        <observer name="custom_checkout_error_handler" instance="DUna\Payments\Observer\CheckoutErrorHandler" />
+    </event>
 </config>
