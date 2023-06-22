@@ -611,6 +611,9 @@ class PostManagement {
             case 'evopayment_3ds':
                 return 'tns_hosted';
                 break;
+            case 'paypal_commerce':
+                return 'paypal_express';
+                break;
             default:
                 return 'deunacheckout';
                 break;
