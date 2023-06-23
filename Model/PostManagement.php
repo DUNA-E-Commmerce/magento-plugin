@@ -19,6 +19,7 @@ use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Framework\App\State as AppState;
+use Magento\Framework\App\Area;
 
 class PostManagement {
 
@@ -86,7 +87,6 @@ class PostManagement {
 
     protected $deunaShipping;
 
-    protected $appState;
 
     public function __construct(
         Request $request,
@@ -101,7 +101,6 @@ class PostManagement {
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
         ShippingMethods $deunaShipping,
-        AppState $appState
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -115,7 +114,6 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
-        $this->appState = $appState;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -127,7 +125,15 @@ class PostManagement {
         {
             try {
 
-                $this->appState->setAreaCode(\Magento\Framework\App\Area::AREA_GLOBAL);
+                $this->logger->debug("Start is Notify");
+
+                $areaCode = Area::AREA_GLOBAL;
+
+                $objectManager = ObjectManager::getInstance();
+                $appState = $objectManager->get(AppState::class);
+
+                $oldAreaCode = $appState->getAreaCode();
+                $appState->setAreaCode($areaCode);
 
                 $bodyReq = $this->request->getBodyParams();
                 $output = [];
@@ -254,7 +260,7 @@ class PostManagement {
                     ]
                 ];
             } finally {
-                $this->appState->setAreaCode(\Magento\Framework\App\Area::AREA_FRONTEND);
+                $appState->setAreaCode($oldAreaCode);
             }
         }
 
