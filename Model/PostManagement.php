@@ -18,8 +18,6 @@ use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
-use Magento\Framework\App\State as AppState;
-use Magento\Framework\App\Area;
 
 class PostManagement {
 
@@ -87,7 +85,6 @@ class PostManagement {
 
     protected $deunaShipping;
 
-
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -121,148 +118,135 @@ class PostManagement {
     /**
      * @return false|string
      */
-        public function notify()
-        {
-            try {
+    public function notify()
+    {
+        try {
+            $bodyReq = $this->request->getBodyParams();
+            $output = [];
 
-                $this->logger->debug("Start is Notify");
+            $this->logger->debug('Notify Payload: ', $bodyReq);
 
-                $areaCode = Area::AREA_GLOBAL;
+            $order = $bodyReq['order'];
+            $orderId = $order['order_id'];
+            $payment_status = $order['payment_status'];
+            $paymentData = $order['payment']['data'];
+            $email = $paymentData['customer']['email'];
+            $token = $order['token'];
+            $paymentProcessor = $paymentData['processor'];
+            $paymentMethod = $order['payment_method'];
+            $userComment = $order['user_instructions'];
+            $shippingAmount = $order['shipping_amount']/100;
+            $totalAmount = $order['total_amount']/100;
 
-                $objectManager = ObjectManager::getInstance();
-                $appState = $objectManager->get(AppState::class);
+            $quote = $this->quotePrepare($order, $email);
 
-                $oldAreaCode = $appState->getAreaCode();
-                $appState->setAreaCode($areaCode);
+            $active = $quote->getIsActive();
 
-                $bodyReq = $this->request->getBodyParams();
-                $output = [];
+            $output = [];
 
-                $this->logger->debug('Notify Payload: ', $bodyReq);
+            if ($active) {
+                $invoice_status = 1;
 
-                $order = $bodyReq['order'];
-                $orderId = $order['order_id'];
-                $payment_status = $order['payment_status'];
-                $paymentData = $order['payment']['data'];
-                $email = $paymentData['customer']['email'];
-                $token = $order['token'];
-                $paymentProcessor = $paymentData['processor'];
-                $paymentMethod = $order['payment_method'];
-                $userComment = $order['user_instructions'];
-                $shippingAmount = $order['shipping_amount']/100;
-                $totalAmount = $order['total_amount']/100;
+                $this->logger->debug("Quote ({$quote->getId()}) is active", [
+                    'processor' => $paymentProcessor,
+                    'paymentStatus' => $payment_status,
+                    'paymentMethod' => $paymentMethod,
+                ]);
 
-                $quote = $this->quotePrepare($order, $email);
+                if($paymentMethod!='cash') {
+                    if($payment_status!='processed' && $payment_status!='authorized')
+                        return;
 
-                $active = $quote->getIsActive();
-
-                $output = [];
-
-                if ($active) {
-                    $invoice_status = 1;
-
-                    $this->logger->debug("Quote ({$quote->getId()}) is active", [
-                        'processor' => $paymentProcessor,
-                        'paymentStatus' => $payment_status,
-                        'paymentMethod' => $paymentMethod,
-                    ]);
-
-                    if($paymentMethod!='cash') {
-                        if($payment_status!='processed' && $payment_status!='authorized')
-                            return;
-
-                        if($payment_status=='processed') {
-                            $invoice_status = 2;
-                        }
+                    if($payment_status=='processed') {
+                        $invoice_status = 2;
                     }
-
-                    $mgOrder = $this->quoteManagement->submit($quote);
-
-                    $this->logger->debug("Order created with status {$mgOrder->getState()}");
-
-                    if(!empty($userComment)) {
-                        $mgOrder->addStatusHistoryComment(
-                            "Comentario de cliente<br>
-                            <i>{$userComment}</i>"
-                        )->setIsVisibleOnFront(true);
-                    }
-
-                    $mgOrder->setShippingAmount($shippingAmount);
-                    $mgOrder->setBaseShippingAmount($shippingAmount);
-                    $mgOrder->setGrandTotal($totalAmount);
-                    $mgOrder->setBaseGrandTotal($totalAmount);
-
-                    $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
-
-                    $payment = $mgOrder->getPayment();
-                    $payment->setAdditionalInformation('processor', $paymentProcessor);
-                    $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
-                    $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
-                    $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
-                    $payment->setAdditionalInformation('payment_method', $paymentMethod);
-                    $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
-                    $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
-                    $payment->setAdditionalInformation('authentication_method', $paymentData['authentication_method']);
-                    $payment->setAdditionalInformation('token', $token);
-                    $payment->save();
-
-                    $mgOrder->save();
-
-                    $newOrderId = $mgOrder->getIncrementId();
-
-                    $this->logger->debug("Order ({$newOrderId}) saved");
-
-                    $output = [
-                        'status' => $order['status'],
-                        'data' => [
-                            'order_id' => $newOrderId,
-                        ]
-                    ];
-
-                    $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
-                        'response' => $output,
-                    ]);
-
-                    ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
-
-                    echo json_encode($output);
-
-                    die();
-                } else {
-                    $output = [
-                        'status' => 'failed',
-                        'data' => 'Quote is not active',
-                    ];
-
-                    $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
-                        'data' => $output,
-                    ]);
-
-                    return json_encode($output);
                 }
-            } catch(Exception $e) {
-                $err = [
-                    'payload' => $bodyReq,
-                    'message' => $e->getMessage(),
-                    'code' => $e->getCode(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTrace(),
-                ];
 
-                $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+                $mgOrder = $this->quoteManagement->submit($quote);
 
-                return [
-                    "status" => 'failed',
-                    "message" => $e->getMessage(),
-                    "code" => $e->getCode(),
-                    "data" => [
-                        "order_id" => $orderId
+                $this->logger->debug("Order created with status {$mgOrder->getState()}");
+
+                if(!empty($userComment)) {
+                    $mgOrder->addStatusHistoryComment(
+                        "Comentario de cliente<br>
+                        <i>{$userComment}</i>"
+                    )->setIsVisibleOnFront(true);
+                }
+
+                $mgOrder->setShippingAmount($shippingAmount);
+                $mgOrder->setBaseShippingAmount($shippingAmount);
+                $mgOrder->setGrandTotal($totalAmount);
+                $mgOrder->setBaseGrandTotal($totalAmount);
+
+                $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
+
+                $payment = $mgOrder->getPayment();
+                $payment->setAdditionalInformation('processor', $paymentProcessor);
+                $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
+                $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
+                $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
+                $payment->setAdditionalInformation('payment_method', $paymentMethod);
+                $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
+                $payment->setAdditionalInformation('deuna_payment_status', $payment_status);
+                $payment->setAdditionalInformation('authentication_method', $paymentData['authentication_method']);
+                $payment->setAdditionalInformation('token', $token);
+                $payment->save();
+
+                $mgOrder->save();
+
+                $newOrderId = $mgOrder->getIncrementId();
+
+                $this->logger->debug("Order ({$newOrderId}) saved");
+
+                $output = [
+                    'status' => $order['status'],
+                    'data' => [
+                        'order_id' => $newOrderId,
                     ]
                 ];
-            } finally {
-                $appState->setAreaCode($oldAreaCode);
+
+                $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
+                    'response' => $output,
+                ]);
+
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
+
+                echo json_encode($output);
+
+                die();
+            } else {
+                $output = [
+                    'status' => 'failed',
+                    'data' => 'Quote is not active',
+                ];
+
+                $this->logger->warning("Pedido ({$orderId}) no se pudo notificar", [
+                    'data' => $output,
+                ]);
+
+                return json_encode($output);
             }
+        } catch(Exception $e) {
+            $err = [
+                'payload' => $bodyReq,
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
+            ];
+
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+
+            return [
+                "status" => 'failed',
+                "message" => $e->getMessage(),
+                "code" => $e->getCode(),
+                "data" => [
+                    "order_id" => $orderId
+                ]
+            ];
         }
+    }
 
     /**
      * Quote Prepare
