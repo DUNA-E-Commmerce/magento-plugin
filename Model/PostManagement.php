@@ -167,13 +167,16 @@ class PostManagement {
                     }
                 }
 
-                if ($paymentMethod === "paypal_commerce"){
-                    $this->logger->debug("Creando Orden PayPal");
+                $this->logger->debug($paymentMethod);
+                $mgOrder = $this->createOrderWithoutPayPal($quote);
 
-                    $mgOrder = $this->createOrderWithoutPayPal($quote);
-                }else{
-                    $mgOrder = $this->quoteManagement->submit($quote);
-                }
+                // if ($paymentMethod == "paypal_commerce"){
+                //     $this->logger->debug("Creando Orden PayPal");
+
+                //     $mgOrder = $this->createOrderWithoutPayPal($quote);
+                // }else{
+                //     $mgOrder = $this->quoteManagement->submit($quote);
+                // }
 
 
                 $this->logger->debug("Order created with status {$mgOrder->getState()}");
