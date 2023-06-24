@@ -18,8 +18,6 @@ use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
-use Magento\Payment\Model\Method\SpecificationInterface;
-use Magento\Payment\Gateway\ConfigInterface;
 
 class PostManagement {
 
@@ -87,10 +85,6 @@ class PostManagement {
 
     protected $deunaShipping;
 
-    protected $paymentConfig;
-
-    protected $paymentSpecification;
-
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -129,7 +123,7 @@ class PostManagement {
         try {
             $bodyReq = $this->request->getBodyParams();
             $output = [];
-            
+
             $this->logger->debug('Notify Payload: ', $bodyReq);
 
             $order = $bodyReq['order'];
@@ -187,12 +181,6 @@ class PostManagement {
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
                 $payment = $mgOrder->getPayment();
-
-                if ($paymentMethod == 'paypal_express'){
-                    $this->logger->debug('Disable Paypal_Express');
-                    $payment->setIsTransactionPending(false);  
-                }
-
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
@@ -631,5 +619,4 @@ class PostManagement {
                 break;
         }
     }
-
 }
