@@ -638,11 +638,22 @@ class PostManagement {
 
     public function createOrderWithoutPayPal($quote)
     {
-        $order = $this->orderManagement->place($quote->getId());
-        $order->setState(Order::STATE_NEW);
-        $order->setStatus(Order::STATE_NEW);
-        $order->save();
+        try {
+            $order = $this->orderManagement->place($quote->getId());
+       
+            return $order;
 
-        return $order;
+        } catch (\Exception $e) {
+            $err = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ];
+
+            $this->logger->critical('Error capturing payment', $err);
+
+            return $err;
+        }
+
     }
 }
