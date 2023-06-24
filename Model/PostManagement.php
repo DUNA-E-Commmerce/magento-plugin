@@ -18,6 +18,8 @@ use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Payment\Model\Method\SpecificationInterface;
+use Magento\Payment\Gateway\ConfigInterface;
 
 class PostManagement {
 
@@ -85,6 +87,10 @@ class PostManagement {
 
     protected $deunaShipping;
 
+    protected $paymentConfig;
+
+    protected $paymentSpecification;
+
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -123,6 +129,10 @@ class PostManagement {
         try {
             $bodyReq = $this->request->getBodyParams();
             $output = [];
+            
+            $this->logger->debug('Notify Disable Paypal');
+
+            $this->disablePaypalExpressAuthorization();
 
             $this->logger->debug('Notify Payload: ', $bodyReq);
 
@@ -617,6 +627,22 @@ class PostManagement {
             default:
                 return 'deunacheckout';
                 break;
+        }
+    }
+
+    public function disablePaypalExpressAuthorization()
+    {
+        $objectManager = ObjectManager::getInstance();
+        $this->paymentConfig = $objectManager->get(ConfigInterface::class);
+        $this->paymentSpecification = $objectManager->get(SpecificationInterface::class);
+
+        $paymentMethodCode = 'paypal_express';
+
+        if ($this->paymentSpecification->isMethodActive($paymentMethodCode)) {
+            $paymentMethodConfig = $this->paymentConfig->getMethodInstance($paymentMethodCode);
+            $paymentMethodConfig->setIsAuthorizationAllowed(false);
+            $this->logger->debug('Paypal Is Authorization Allowed False');
+
         }
     }
 }
