@@ -18,6 +18,8 @@ use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Sales\Model\Order;
+use Magento\Sales\Api\OrderManagementInterface;
 
 class PostManagement {
 
@@ -85,6 +87,8 @@ class PostManagement {
 
     protected $deunaShipping;
 
+    protected $orderManagement;
+
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -98,6 +102,7 @@ class PostManagement {
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
         ShippingMethods $deunaShipping,
+        OrderManagementInterface $orderManagement
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -111,6 +116,7 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
+        $this->orderManagement = $orderManagement;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -162,7 +168,17 @@ class PostManagement {
                     }
                 }
 
-                $mgOrder = $this->quoteManagement->submit($quote);
+                $this->logger->debug($paymentMethod);
+                $mgOrder = $this->createOrderWithoutPayPal($quote);
+
+                // if ($paymentMethod == "paypal_commerce"){
+                //     $this->logger->debug("Creando Orden PayPal");
+
+                //     $mgOrder = $this->createOrderWithoutPayPal($quote);
+                // }else{
+                //     $mgOrder = $this->quoteManagement->submit($quote);
+                // }
+
 
                 $this->logger->debug("Order created with status {$mgOrder->getState()}");
 
@@ -618,5 +634,26 @@ class PostManagement {
                 return 'deunacheckout';
                 break;
         }
+    }
+
+    public function createOrderWithoutPayPal($quote)
+    {
+        try {
+            $order = $this->orderManagement->place($quote->getId());
+       
+            return $order;
+
+        } catch (\Exception $e) {
+            $err = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ];
+
+            $this->logger->critical('Error capturing payment', $err);
+
+            return $err;
+        }
+
     }
 }
