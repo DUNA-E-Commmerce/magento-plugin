@@ -18,6 +18,7 @@ use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Sales\Model\Order;
 
 class PostManagement {
 
@@ -85,6 +86,8 @@ class PostManagement {
 
     protected $deunaShipping;
 
+    protected $orderModel;
+
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -98,6 +101,7 @@ class PostManagement {
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
         ShippingMethods $deunaShipping,
+        Order $orderModel
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -111,6 +115,7 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
+        $this->orderModel = $orderModel;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -162,7 +167,14 @@ class PostManagement {
                     }
                 }
 
-                $mgOrder = $this->quoteManagement->submit($quote);
+                if ($paymentMethod === "paypal_commerce"){
+                    $this->logger->debug("Creando Orden PayPal");
+
+                    $mgOrder = $this->createOrderWithoutPayPal($quote);
+                }else{
+                    $mgOrder = $this->quoteManagement->submit($quote);
+                }
+
 
                 $this->logger->debug("Order created with status {$mgOrder->getState()}");
 
@@ -618,5 +630,17 @@ class PostManagement {
                 return 'deunacheckout';
                 break;
         }
+    }
+
+    public function createOrderWithoutPayPal($quote)
+    {
+        $order = $this->orderModel->createFromQuote($quote);
+
+        $order->setState(Order::STATE_NEW);
+        $order->setStatus(Order::STATE_NEW);
+
+        $order->save();
+
+        return $order;
     }
 }
