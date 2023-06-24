@@ -639,7 +639,7 @@ class PostManagement {
     public function createOrderWithoutPayPal($quote)
     {
         try {
-            $order = $this->orderManagement->place($this->quoteRepository->get($quote->getId()));
+            $order = $this->orderManagement->place($quote);
 
             return $order;
 
