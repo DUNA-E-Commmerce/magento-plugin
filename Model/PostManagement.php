@@ -19,6 +19,7 @@ use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Api\OrderManagementInterface;
 
 class PostManagement {
 
@@ -86,7 +87,7 @@ class PostManagement {
 
     protected $deunaShipping;
 
-    protected $orderModel;
+    protected $orderManagement;
 
     public function __construct(
         Request $request,
@@ -101,7 +102,7 @@ class PostManagement {
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
         ShippingMethods $deunaShipping,
-        Order $orderModel
+        OrderManagementInterface $orderManagement
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -115,7 +116,7 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
-        $this->orderModel = $orderModel;
+        $this->orderManagement = $orderManagement;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -637,11 +638,9 @@ class PostManagement {
 
     public function createOrderWithoutPayPal($quote)
     {
-        $order = $this->orderModel->createFromQuote($quote);
-
+        $order = $this->orderManagement->place($quote->getId());
         $order->setState(Order::STATE_NEW);
         $order->setStatus(Order::STATE_NEW);
-
         $order->save();
 
         return $order;
