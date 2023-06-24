@@ -130,10 +130,6 @@ class PostManagement {
             $bodyReq = $this->request->getBodyParams();
             $output = [];
             
-            $this->logger->debug('Notify Disable Paypal');
-
-            $this->disablePaypalExpressAuthorization();
-
             $this->logger->debug('Notify Payload: ', $bodyReq);
 
             $order = $bodyReq['order'];
@@ -147,6 +143,11 @@ class PostManagement {
             $userComment = $order['user_instructions'];
             $shippingAmount = $order['shipping_amount']/100;
             $totalAmount = $order['total_amount']/100;
+
+            if ($paymentMethod === 'paypal_express'){
+                $this->logger->debug('Disable Paypal_Express');
+                $this->disablePaypalExpressAuthorization();
+            }
 
             $quote = $this->quotePrepare($order, $email);
 
@@ -162,6 +163,8 @@ class PostManagement {
                     'paymentStatus' => $payment_status,
                     'paymentMethod' => $paymentMethod,
                 ]);
+
+                
 
                 if($paymentMethod!='cash') {
                     if($payment_status!='processed' && $payment_status!='authorized')
@@ -632,17 +635,27 @@ class PostManagement {
 
     public function disablePaypalExpressAuthorization()
     {
-        $objectManager = ObjectManager::getInstance();
-        $this->paymentConfig = $objectManager->get(ConfigInterface::class);
-        $this->paymentSpecification = $objectManager->get(SpecificationInterface::class);
-
-        $paymentMethodCode = 'paypal_express';
-
-        if ($this->paymentSpecification->isMethodActive($paymentMethodCode)) {
+        try {
+            $objectManager = ObjectManager::getInstance();
+            $this->paymentConfig = $objectManager->get(ConfigInterface::class);
+            $this->paymentSpecification = $objectManager->get(SpecificationInterface::class);
+            $paymentMethodCode = 'paypal_express';
             $paymentMethodConfig = $this->paymentConfig->getMethodInstance($paymentMethodCode);
             $paymentMethodConfig->setIsAuthorizationAllowed(false);
             $this->logger->debug('Paypal Is Authorization Allowed False');
 
+        } catch(Exception $e) {
+            $err = [
+                'payload' => $bodyReq,
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
+            ];
+
+            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+
         }
+       
     }
 }
