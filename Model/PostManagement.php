@@ -619,32 +619,11 @@ class PostManagement {
                 return 'tns_hosted';
                 break;
             case 'paypal_commerce':
-                return 'paypal_express';
+                return 'paypal_express_tmp';
                 break;
             default:
                 return 'deunacheckout';
                 break;
         }
-    }
-
-    public function createOrderWithoutPayPal($quote)
-    {
-        try {
-            $order = $this->orderManagement->place($quote);
-
-            return $order;
-
-        } catch (\Exception $e) {
-            $err = [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
-            ];
-
-            $this->logger->critical('Error capturing payment', $err);
-
-            return $err;
-        }
-
     }
 }
