@@ -212,6 +212,12 @@ class PostManagement {
                     ]
                 ];
 
+                $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
+                    'response' => $output,
+                ]);
+
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
+
                 if($paymentProcessor=='paypal_commerce') {
                     $paypalChanged = $this->helper->savePaypalCode($payment->getId());
 
@@ -219,12 +225,6 @@ class PostManagement {
                         'paypalChanged' => $paypalChanged,
                     ]);
                 }
-
-                $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
-                    'response' => $output,
-                ]);
-
-                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
 
                 echo json_encode($output);
 
