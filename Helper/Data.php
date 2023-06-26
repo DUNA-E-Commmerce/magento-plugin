@@ -131,7 +131,7 @@ class Data extends AbstractHelper
             'method' => $paypalCode,
         ];
         $where = [
-            'parent_id = ?' => (int)$id,
+            'entity_id = ?' => (int)$id,
         ];
 
         $output = $connection->update($tableName, $data, $where);
