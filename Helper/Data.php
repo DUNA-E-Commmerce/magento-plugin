@@ -126,16 +126,20 @@ class Data extends AbstractHelper
         $output = null;
         $connection  = $this->resource->getConnection();
 
-        $tableName = $connection->getTableName('sales_order_payment');
-        $data = [
-            'method' => $paypalCode,
-        ];
-        $where = [
-            'entity_id = ?' => (int)$id,
-        ];
+        // $tableName = $connection->getTableName('sales_order_payment');
+        // $data = [
+        //     'method' => $paypalCode,
+        // ];
+        // $where = [
+        //     'entity_id = ?' => (int)$id,
+        // ];
 
-        $output = $connection->update($tableName, $data, $where);
+        $sql = "UPDATE sales_order_payment
+                SET method = '$paypalCode'
+                WHERE entity_id = $id";
 
-        return $output;
+        $connection->query($sql);
+
+        return $sql;
     }
 }
