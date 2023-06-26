@@ -111,4 +111,20 @@ class Data extends AbstractHelper
 
         return (int) round($priceFix * 100, 1 , PHP_ROUND_HALF_UP);;
     }
+
+    public function savePaypalCode()
+    {
+        $output = null;
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+        $salesPaymentOrder = $objectManager->create('Magento\Sales\Model\Order\Payment');
+
+        $salesPaymentOrder->setMethod('paypal_express');
+        $salesPaymentOrder->save();
+
+        $output = $salesPaymentOrder->getId();
+
+        return $output;
+    }
 }
