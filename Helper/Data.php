@@ -120,7 +120,7 @@ class Data extends AbstractHelper
         return (int) round($priceFix * 100, 1 , PHP_ROUND_HALF_UP);;
     }
 
-    public function savePaypalCode($orderId)
+    public function savePaypalCode($id)
     {
         $paypalCode = 'paypal_express';
         $output = null;
@@ -131,12 +131,12 @@ class Data extends AbstractHelper
         //     'method' => $paypalCode,
         // ];
         // $where = [
-        //     'parent_id = ?' => (int)$orderId,
+        //     'parent_id = ?' => (int)$id,
         // ];
 
         $sql = "UPDATE $tableName
                 SET `method` = '$paypalCode'
-                WHERE $tableName.`parent_id` = $orderId";
+                WHERE $tableName.`entity_id` = (int)$id";
 
         $output = $connection->query($sql);
 
