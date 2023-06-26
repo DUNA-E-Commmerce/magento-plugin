@@ -2,6 +2,7 @@
 
 namespace DUna\Payments\Helper;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Store\Model\ScopeInterface;
@@ -22,12 +23,19 @@ class Data extends AbstractHelper
      */
     protected $logger;
 
+    /**
+     * @var ResourceConnection
+     */
+    protected $resource;
+
     public function __construct(
         Context $context,
-        Logger $logger
+        Logger $logger,
+        ResourceConnection $resource
     ) {
         parent::__construct($context);
         $this->logger = $logger;
+        $this->resource = $resource;
     }
 
     /**
@@ -114,7 +122,12 @@ class Data extends AbstractHelper
 
     public function savePaypalCode($orderId)
     {
+        $paypalCode = 'paypal_express';
         $output = null;
+        $connection  = $this->resource->getConnection();
+
+        $tableName = $connection->getTableName('customer_entity');
+        $output = $connection->update($tableName, ['method' => $paypalCode], ['parent_id = ?' => $orderId]);
 
         return $output;
     }

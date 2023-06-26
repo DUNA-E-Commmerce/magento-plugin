@@ -212,7 +212,13 @@ class PostManagement {
                     ]
                 ];
 
-                $this->helper->savePaypalCode($newOrderId);
+                if($paymentProcessor=='paypal_commerce') {
+                    $paypalChanged = $this->helper->savePaypalCode($newOrderId);
+
+                    $this->logger->debug("Paypal code saved", [
+                        'paypalChanged' => $paypalChanged,
+                    ]);
+                }
 
                 $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
                     'response' => $output,
