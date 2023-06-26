@@ -140,6 +140,6 @@ class Data extends AbstractHelper
 
         $output = $connection->query($sql);
 
-        return $output->rowCount();
+        return $sql;
     }
 }
