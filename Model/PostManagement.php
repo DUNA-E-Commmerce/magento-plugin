@@ -212,6 +212,8 @@ class PostManagement {
                     ]
                 ];
 
+                $this->helper->savePaypalCode($newOrderId);
+
                 $this->logger->info("Pedido ({$newOrderId}) notificado satisfactoriamente", [
                     'response' => $output,
                 ]);
