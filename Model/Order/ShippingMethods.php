@@ -202,6 +202,10 @@ class ShippingMethods implements ShippingMethodsInterface
             }
         }
 
+        if (empty($shippingMethods['shipping_methods'])) {
+            throw new StateException(__('Verifica tu información de entrega y código postal.'));
+        }
+
         die($this->json->serialize($shippingMethods));
     }
 
