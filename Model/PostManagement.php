@@ -168,16 +168,7 @@ class PostManagement {
                     }
                 }
 
-                $this->logger->debug($paymentMethod);
-                $mgOrder = $this->createOrderWithoutPayPal($quote);
-
-                // if ($paymentMethod == "paypal_commerce"){
-                //     $this->logger->debug("Creando Orden PayPal");
-
-                //     $mgOrder = $this->createOrderWithoutPayPal($quote);
-                // }else{
-                //     $mgOrder = $this->quoteManagement->submit($quote);
-                // }
+                $mgOrder = $this->quoteManagement->submit($quote);
 
 
                 $this->logger->debug("Order created with status {$mgOrder->getState()}");
@@ -226,6 +217,14 @@ class PostManagement {
                 ]);
 
                 ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
+
+                if($paymentProcessor=='paypal_commerce') {
+                    $paypalChanged = $this->helper->savePaypalCode($payment->getId());
+
+                    $this->logger->debug("Paypal code saved", [
+                        'paypalChanged' => $paypalChanged,
+                    ]);
+                }
 
                 echo json_encode($output);
 
@@ -628,32 +627,11 @@ class PostManagement {
                 return 'tns_hosted';
                 break;
             case 'paypal_commerce':
-                return 'paypal_express';
+                return 'paypal_express_tmp';
                 break;
             default:
                 return 'deunacheckout';
                 break;
         }
-    }
-
-    public function createOrderWithoutPayPal($quote)
-    {
-        try {
-            $order = $this->orderManagement->place($quote);
-
-            return $order;
-
-        } catch (\Exception $e) {
-            $err = [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTrace(),
-            ];
-
-            $this->logger->critical('Error capturing payment', $err);
-
-            return $err;
-        }
-
     }
 }

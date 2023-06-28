@@ -32,7 +32,7 @@ function verifySelectedRadioShipping(checkoutButton) {
 
     if (element) {
         const radioButtons = document.querySelectorAll('#' + element.id + ' input[type="radio"]');
-        
+
         radioButtons.forEach(radio => {
             radio.addEventListener('change', function() {
                 checkoutButton.disabled = false;
@@ -61,9 +61,9 @@ var verifyToAddListeners = function() {
                 checkoutButton2.disabled = false;
             });
         });
-        clearInterval(intervalId); 
+        clearInterval(intervalId);
     }
-};  
+};
 
 if(isDev()) {
     env = 'Develop';
@@ -110,7 +110,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
     setTimeout(function() {
         var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
         checkoutButton2.disabled = true;
-        
+
         let radioElement3 = document.getElementById('cs_method_bopis_bopis');
         if (radioElement3) {
             radioElement3.disabled = true;
@@ -137,9 +137,9 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
     }, 700);
 
     window.addEventListener('load', (event) => {
-        
+
         var shippingMethodForm = document.getElementById('block-shipping-top');
-    
+
         if (shippingMethodForm != null) {
             var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
             var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
@@ -165,20 +165,20 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                     if (radioElement) {
                      radioElement.disabled = true;
                     }
-    
+
                     var tdElements = div.querySelectorAll('td');
-    
+
                     if (tdElements.length > 0) {
                     } else {
                         var csMethodBopisBopis = document.getElementById('cs_method_bopis_bopis');
                         var parentElement = csMethodBopisBopis.parentNode;
                         parentElement.setAttribute('hidden', 'true');
                     }
-                    
+
                     setTimeout(function() {
                         verifySelectedRadioShipping(checkoutButton);
                     }, 500);
-                    
+
                     setTimeout(function() {
                         verifySelectedRadioShipping(checkoutButton);
                     }, 1000);
@@ -188,11 +188,11 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                 }
             }
         };
-    
+
         var currentURL = window.location.href;
         var urlObject = new URL(currentURL);
         var domain = urlObject.origin;
-    
+
         xhr.open('GET', domain + '/storepickup/stores/index/?_=' + Date.now());
         xhr.send();
     });
@@ -240,7 +240,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                 await self.dunaCheckout.show();
             })
             .error(function (error, status, message) {
-                alert(`Error (${status}): ${message}`);
+                alert(`Error DEUNA (${status}): Falló la petición para obtener el token de pago.`);
 
                 window.location.reload();
             });
