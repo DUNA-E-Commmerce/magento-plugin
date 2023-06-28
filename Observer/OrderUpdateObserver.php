@@ -37,6 +37,7 @@ class OrderUpdateObserver implements ObserverInterface
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
             $orderDeunaStatus = $payment->getAdditionalInformation('deuna_payment_status');
+
             $this->logger->debug('Cancel Order', [
                 'orderId' => $orderId,
                 'orderToken' => $orderToken,
@@ -44,6 +45,7 @@ class OrderUpdateObserver implements ObserverInterface
 
             try {
                 $resp = $this->cancelOrder($orderToken, $orderDeunaStatus);
+
                 $this->logger->debug("Order {$orderId} has been canceled successfully", [
                     'orderId' => $orderId,
                     'orderToken' => $orderToken,
@@ -62,10 +64,6 @@ class OrderUpdateObserver implements ObserverInterface
     private function cancelOrder($orderToken, $orderDeunaStatus)
     {
         $endpoint = "/merchants/orders/{$orderToken}/cancel";
-        
-        if ($orderDeunaStatus === 'authorized'){
-            $endpoint = "/merchants/orders/{$orderToken}/void";
-        }
 
         if ($orderDeunaStatus === 'authorized'){
             $endpoint = "/merchants/orders/{$orderToken}/void";
@@ -75,8 +73,13 @@ class OrderUpdateObserver implements ObserverInterface
             'Accept: application/json',
             'Content-Type: application/json',
         ];
+
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        $this->logger->debug('Cancel endpoint', [
+            'endpoint' => $endpoint,
+        ]);
 
         $requestHelper->request($endpoint, 'POST', '', $headers);
     }
