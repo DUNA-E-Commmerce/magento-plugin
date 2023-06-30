@@ -5,6 +5,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\SalesRule\Model\Rule;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\SalesRule\Model\Coupon;
 
 class ApplyDiscountObserver implements ObserverInterface
 {
@@ -12,8 +13,12 @@ class ApplyDiscountObserver implements ObserverInterface
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
 
     protected $logger;
+    protected $_coupon;
 
-    public function __construct() {
+    public function __construct( 
+        Coupon $coupon
+        ) {
+        $this->_coupon = $coupon;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -37,10 +42,8 @@ class ApplyDiscountObserver implements ObserverInterface
                 $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
             }
 
-            $ruleId2 = $ruleModel->loadByCode($couponCode)->getRuleId();
-
+            $ruleId2 = $this->_coupon->loadByCode($couponCode)->getRuleId();
             $ruleModel->load($ruleId2);
-
             $discountPercentage = $ruleModel->getDiscountAmount();
 
             $this->logger->debug('rule 2 discount amount: ' . $discountPercentage);
