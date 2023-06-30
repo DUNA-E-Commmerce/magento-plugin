@@ -56,6 +56,23 @@ class ApplyDiscountObserver implements ObserverInterface
             $this->logger->debug('Rule Id: ' . $ruleId);
             $this->logger->debug('Total Percentage: ' . $TotalDiscountPercentage);
             $this->logger->debug('Coupon Code: ' . $couponCode);
+
+            $discountPercentage = $TotalDiscountPercentage; 
+        
+            $baseSubtotal = $quote->getBaseSubtotal();
+            $discountAmount = ($baseSubtotal * $discountPercentage) / 100;
+
+            $quote->setDiscountAmount($discountAmount);
+            $quote->setBaseDiscountAmount($discountAmount);
+
+            $quote->setGrandTotal($quote->getGrandTotal() - $discountAmount);
+            $quote->setBaseGrandTotal($quote->getBaseGrandTotal() - $discountAmount);
+
+            $quote->setSubtotal($baseSubtotal);
+            $quote->setBaseSubtotal($baseSubtotal);
+
+            $quote->save();
+
         }
     }
 }
