@@ -61,7 +61,7 @@ class ApplyDiscountObserver implements ObserverInterface
             $quote->setSubtotal($baseSubtotal);
             $quote->setBaseSubtotal($baseSubtotal);
 
-            $quote->save();
+            // $quote->save();
 
         }
     }
