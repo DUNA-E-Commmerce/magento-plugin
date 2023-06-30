@@ -22,6 +22,7 @@ class ApplyDiscountObserver implements ObserverInterface
     {
         $quote = $observer->getEvent()->getQuote();
         $couponCode = $quote->getCouponCode();
+        $this->logger->debug('Coupon Code: ' . $couponCode);
 
         if (!empty($couponCode)) {
             
