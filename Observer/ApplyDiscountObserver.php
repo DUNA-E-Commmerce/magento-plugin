@@ -37,8 +37,8 @@ class ApplyDiscountObserver implements ObserverInterface
                 $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
             }
 
-            $ruleId2 = $ruleModel->getIdByCode($couponCode);
-            
+            $ruleId2 = $ruleModel->loadByCode($couponCode)->getRuleId();
+
             $ruleModel->load($ruleId2);
 
             $discountPercentage = $ruleModel->getDiscountAmount();
