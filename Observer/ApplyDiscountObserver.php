@@ -22,10 +22,9 @@ class ApplyDiscountObserver implements ObserverInterface
     {
         $quote = $observer->getEvent()->getQuote();
         $couponCode = $quote->getCouponCode();
-        $this->logger->debug('Coupon Code: ' . $couponCode);
 
         if (!empty($couponCode)) {
-            
+            $TotalDiscountPercentage = 0;
             $appliedRuleIds = $quote->getAppliedRuleIds();
             $appliedRules = explode(',', $appliedRuleIds);
 
@@ -33,13 +32,16 @@ class ApplyDiscountObserver implements ObserverInterface
 
             foreach ($appliedRules as $ruleId) {
                 $ruleModel->load($ruleId);
-
-                $existingDiscountPercentage = $ruleModel->getDiscountAmount();
-
-                $this->logger->debug('Rule Id: ' . $ruleId);
-                $this->logger->debug('Exiting Percentage: ' . $existingDiscountPercentage);
-             
+                $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
             }
+
+            $ruleId = $ruleModel->getIdByCode($couponCode);
+            $ruleModel->load($ruleId);
+            $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
+
+            $this->logger->debug('Rule Id: ' . $ruleId);
+            $this->logger->debug('Total Percentage: ' . $TotalDiscountPercentage);
+            $this->logger->debug('Coupon Code: ' . $couponCode);
         }
     }
 }
