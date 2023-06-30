@@ -33,7 +33,10 @@ class ApplyDiscountObserver implements ObserverInterface
             foreach ($appliedRules as $ruleId) {
                 $ruleModel->load($ruleId);
 
+                $existingDiscountPercentage = $ruleModel->getDiscountAmount();
+
                 $this->logger->debug('Rule Id: ' . $ruleId);
+                $this->logger->debug('Exiting Percentage: ' . $existingDiscountPercentage);
              
             }
         }
