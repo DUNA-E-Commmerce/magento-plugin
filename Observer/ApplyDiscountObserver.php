@@ -32,12 +32,20 @@ class ApplyDiscountObserver implements ObserverInterface
 
             foreach ($appliedRules as $ruleId) {
                 $ruleModel->load($ruleId);
+                $this->logger->debug('rule discount amount: ' . $ruleModel->getDiscountAmount());
+
                 $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
             }
 
-            $ruleId = $ruleModel->getIdByCode($couponCode);
-            $ruleModel->load($ruleId);
-            $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
+            $ruleModel2 = \Magento\Framework\App\ObjectManager::getInstance()->create(Rule::class);
+
+            $ruleId2 = $ruleModel2->getIdByCode($couponCode);
+            
+            $ruleModel2->load($ruleId2);
+
+            $this->logger->debug('rule 2 discount amount: ' . $ruleModel2->getDiscountAmount());
+
+            $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel2->getDiscountAmount();
 
             $this->logger->debug('Rule Id: ' . $ruleId);
             $this->logger->debug('Total Percentage: ' . $TotalDiscountPercentage);
