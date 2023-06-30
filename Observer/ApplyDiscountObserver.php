@@ -54,12 +54,14 @@ class ApplyDiscountObserver implements ObserverInterface
 
             $this->logger->debug('Discount Amount: ' . $discountAmount);
 
+            $quote->setDiscountAmount($discountAmount);
+            $quote->setBaseDiscountAmount($discountAmount);
 
-            // $quote->setDiscountAmount($discountAmount);
-            // $quote->setBaseDiscountAmount($discountAmount);
+            $quote->setGrandTotal($quote->getGrandTotal() - $discountAmount);
+            $quote->setBaseGrandTotal($quote->getBaseGrandTotal() - $discountAmount);
 
-            // $quote->setGrandTotal($quote->getGrandTotal() - $discountAmount);
-            // $quote->setBaseGrandTotal($quote->getBaseGrandTotal() - $discountAmount);
+
+            $this->logger->debug('Quote: ', $quote);
 
             // $quote->setSubtotal($baseSubtotal);
             // $quote->setBaseSubtotal($baseSubtotal);
