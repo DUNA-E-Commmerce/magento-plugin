@@ -21,7 +21,4 @@
     <type name="Magento\Paypal\Model\Express">
         <plugin name="disable_paypal_express_observer" type="DUna\Payments\Plugin\DisablePaypalExpressObserver" sortOrder="1" disabled="false" />
     </type>
-    <type name="Magento\Quote\Model\Quote">
-        <plugin name="duna_payments_modify_discounts" type="DUna\Payments\Plugin\ModifyDiscounts" sortOrder="10" disabled="false" />
-    </type>
 </config>

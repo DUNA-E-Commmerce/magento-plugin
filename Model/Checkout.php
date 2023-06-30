@@ -138,7 +138,6 @@ class Checkout implements CheckoutInterface
                 $this->logger->debug('Ya se ha aplicado una regla de carro.');
             }
 
-            $originalgetGrandTotalAmount = $quote->getGrandTotal();
             $originalSubtotalAmount = $quote->getSubtotal();
             $originalSubtotalAmountWithDiscount = $quote->getSubtotalWithDiscount();
 
@@ -158,6 +157,14 @@ class Checkout implements CheckoutInterface
 
                 if($couponType=="2") {
                     $couponAmount = ($couponAmount / 100) * $quote->getSubtotal();
+                    
+                    $this->logger->debug("Cupon aplicado", [
+                        'couponAmount' => $couponAmount,
+                        'couponType' => $couponType,
+                        'subtotal' => $quote->getSubtotal(),
+                        'ruleDiscountAmount' => $rule->getDiscountAmount(),
+                    ]);
+
                 }
 
                 $freeShipping = $rule->getSimpleFreeShipping();
