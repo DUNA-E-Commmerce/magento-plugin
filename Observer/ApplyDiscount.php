@@ -25,7 +25,7 @@ class ApplyDiscount implements ObserverInterface
 
         $totalDiscountAmount = ($totalDiscountPercentage / 100) * $quote->getSubtotal();
 
-        $quote->setSubtotal($quote->getSubtotal() - $totalDiscountAmount);
-        $quote->setBaseSubtotal($quote->getBaseSubtotal() - $totalDiscountAmount);
+        $quote->setSubtotalWithDiscount($quote->getSubtotal() - $totalDiscountAmount);
+        $quote->setBaseSubtotalWithDiscount($quote->getBaseSubtotal() - $totalDiscountAmount);
     }
 }
