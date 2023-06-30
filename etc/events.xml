@@ -12,6 +12,6 @@
     </event>
 
     <event name="sales_quote_collect_totals_before">
-        <observer name="duna_payments_apply_discount" instance="DUna\Payments\Observer\ApplyDiscount" />
+        <observer name="duna_payments_modify_discounts" instance="DUna\Payments\Observer\ModifyDiscounts" />
     </event>
 </config>
