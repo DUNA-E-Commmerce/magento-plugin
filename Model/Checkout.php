@@ -132,6 +132,12 @@ class Checkout implements CheckoutInterface
             $body = $this->request->getBodyParams();
             $couponCode = $body['coupon_code'];
 
+            $appliedRuleIds = $quote->getAppliedRuleIds();
+
+            if (!empty($appliedRuleIds)) {
+                $this->logger->debug('Ya se ha aplicado una regla de carro.');
+            }
+
             $originalSubtotalAmount = $quote->getSubtotal();
             $originalSubtotalAmountWithDiscount = $quote->getSubtotalWithDiscount();
 
