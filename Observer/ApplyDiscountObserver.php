@@ -37,41 +37,34 @@ class ApplyDiscountObserver implements ObserverInterface
 
             foreach ($appliedRules as $ruleId) {
                 $ruleModel->load($ruleId);
-                $this->logger->debug('rule discount amount: ' . $ruleModel->getDiscountAmount());
-
                 $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
             }
 
             $ruleId2 = $this->_coupon->loadByCode($couponCode)->getRuleId();
             $ruleModel->load($ruleId2);
-            $discountPercentage = $ruleModel->getDiscountAmount();
-
-            $this->logger->debug('rule 2 discount amount: ' . $discountPercentage);
-            $this->logger->debug('rule model 2: ' , [
-                "data" => $ruleModel,
-            ]);
-
             $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
 
-            $this->logger->debug('Rule Id: ' . $ruleId);
             $this->logger->debug('Total Percentage: ' . $TotalDiscountPercentage);
-            $this->logger->debug('Coupon Code: ' . $couponCode);
 
-            $discountPercentage = $TotalDiscountPercentage; 
-        
             $baseSubtotal = $quote->getBaseSubtotal();
-            $discountAmount = ($baseSubtotal * $discountPercentage) / 100;
 
-            $quote->setDiscountAmount($discountAmount);
-            $quote->setBaseDiscountAmount($discountAmount);
+            $this->logger->debug('SubTotal Base: ' . $baseSubtotal);
 
-            $quote->setGrandTotal($quote->getGrandTotal() - $discountAmount);
-            $quote->setBaseGrandTotal($quote->getBaseGrandTotal() - $discountAmount);
+            $discountAmount = ($baseSubtotal * $TotalDiscountPercentage) / 100;
 
-            $quote->setSubtotal($baseSubtotal);
-            $quote->setBaseSubtotal($baseSubtotal);
+            $this->logger->debug('Discount Amount: ' . $discountAmount);
 
-            $quote->save();
+
+            // $quote->setDiscountAmount($discountAmount);
+            // $quote->setBaseDiscountAmount($discountAmount);
+
+            // $quote->setGrandTotal($quote->getGrandTotal() - $discountAmount);
+            // $quote->setBaseGrandTotal($quote->getBaseGrandTotal() - $discountAmount);
+
+            // $quote->setSubtotal($baseSubtotal);
+            // $quote->setBaseSubtotal($baseSubtotal);
+
+            // $quote->save();
 
         }
     }
