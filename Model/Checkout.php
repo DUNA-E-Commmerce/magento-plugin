@@ -147,7 +147,7 @@ class Checkout implements CheckoutInterface
 
             $ruleId = $this->_coupon->loadByCode($couponCode)->getRuleId();
 
-            if(!empty($ruleId)) {
+            if (!empty($ruleId)) {
                 $rule = $this->saleRule->load($ruleId);
                 $couponType = $rule->getCouponType();
                 $couponAmount = $rule->getDiscountAmount();
@@ -155,8 +155,20 @@ class Checkout implements CheckoutInterface
                 $quote->getShippingAddress()->setCollectShippingRates(true);
                 $quote->setCouponCode($couponCode)->collectTotals()->save();
 
-                if($couponType=="2") {
-                    $couponAmount = ($couponAmount / 100) * $quote->getSubtotal();
+                if ($couponType == "2") {
+                    $existingCouponCode = $quote->getCouponCode();
+
+                    if (!empty($existingCouponCode)) {
+                        $existingCouponRuleId = $this->_coupon->loadByCode($existingCouponCode)->getRuleId();
+                        $existingCouponRule = $this->saleRule->load($existingCouponRuleId);
+                        $existingCouponDiscount = $existingCouponRule->getDiscountAmount();
+
+                        $combinedDiscountPercentage = ($existingCouponDiscount + $couponAmount) / 100;
+
+                        $combinedDiscountAmount = $combinedDiscountPercentage * $quote->getSubtotal();
+                        $quote->setDiscountAmount($combinedDiscountAmount);
+                        $quote->setBaseDiscountAmount($combinedDiscountAmount);
+                    }
                 }
 
                 $freeShipping = $rule->getSimpleFreeShipping();
@@ -196,15 +208,15 @@ class Checkout implements CheckoutInterface
                     'newSubtotalAmountWithDiscount' => $newSubtotalAmountWithDiscount,
                 ]);
 
-                if($newSubtotalAmountWithDiscount==$originalSubtotalAmountWithDiscount) {
+                if ($newSubtotalAmountWithDiscount == $originalSubtotalAmountWithDiscount) {
                     $err = [
                         'code' => 'EM-6001',
                         'message' => "Cupón ({$couponCode}) inválido",
                         'status_code' => '406',
                     ];
-    
+
                     $this->logger->warning("Cupon ({$couponCode}) inválido", $err);
-    
+
                     return $this->getJson($err, $err['status_code']);
                 }
 
@@ -220,17 +232,18 @@ class Checkout implements CheckoutInterface
 
                 return $this->getJson($err, $err['status_code']);
             }
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $err = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
             ];
-            $this->logger->error('Critical error in '.__CLASS__.'\\'.__FUNCTION__, $err);
+            $this->logger->error('Critical error in ' . __CLASS__ . '\\' . __FUNCTION__, $err);
 
             return $this->getJson($err);
         }
     }
+
 
     /**
      * @param int $cartId
