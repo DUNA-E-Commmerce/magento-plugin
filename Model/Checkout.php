@@ -157,14 +157,6 @@ class Checkout implements CheckoutInterface
 
                 if($couponType=="2") {
                     $couponAmount = ($couponAmount / 100) * $quote->getSubtotal();
-                    
-                    $this->logger->debug("Cupon aplicado", [
-                        'couponAmount' => $couponAmount,
-                        'couponType' => $couponType,
-                        'subtotal' => $quote->getSubtotal(),
-                        'ruleDiscountAmount' => $rule->getDiscountAmount(),
-                    ]);
-
                 }
 
                 $freeShipping = $rule->getSimpleFreeShipping();
@@ -204,7 +196,7 @@ class Checkout implements CheckoutInterface
                     'newSubtotalAmountWithDiscount' => $newSubtotalAmountWithDiscount,
                 ]);
 
-                if($newSubtotalAmountWithDiscount==$originalSubtotalAmountWithDiscount) {
+                if($newSubtotalAmountWithDiscount == $originalSubtotalAmountWithDiscount) {
                     $err = [
                         'code' => 'EM-6001',
                         'message' => "Cupón ({$couponCode}) inválido",
