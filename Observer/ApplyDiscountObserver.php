@@ -37,15 +37,18 @@ class ApplyDiscountObserver implements ObserverInterface
                 $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
             }
 
-            $ruleModel2 = \Magento\Framework\App\ObjectManager::getInstance()->create(Rule::class);
-
-            $ruleId2 = $ruleModel2->getIdByCode($couponCode);
+            $ruleId2 = $ruleModel->getIdByCode($couponCode);
             
-            $ruleModel2->load($ruleId2);
+            $ruleModel->load($ruleId2);
 
-            $this->logger->debug('rule 2 discount amount: ' . $ruleModel2->getDiscountAmount());
+            $discountPercentage = $ruleModel->getDiscountAmount();
 
-            $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel2->getDiscountAmount();
+            $this->logger->debug('rule 2 discount amount: ' . $discountPercentage);
+            $this->logger->debug('rule model 2: ' , [
+                "data" => $ruleModel,
+            ]);
+
+            $TotalDiscountPercentage = $TotalDiscountPercentage + $ruleModel->getDiscountAmount();
 
             $this->logger->debug('Rule Id: ' . $ruleId);
             $this->logger->debug('Total Percentage: ' . $TotalDiscountPercentage);
