@@ -28,7 +28,7 @@ class OrderUpdateObserver implements ObserverInterface
             'orderId' => $order->getId(),
         ]);
 
-        if ($state === 'canceled' || $status === 'canceled'){
+        if (in_array($state, ['canceled', 'closed']) || in_array($status, ['canceled', 'closed'])){
             $orderId = $order->getId();
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
             $orderRepository = $objectManager->get(\Magento\Sales\Api\OrderRepositoryInterface::class);
