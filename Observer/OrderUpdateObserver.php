@@ -24,7 +24,7 @@ class OrderUpdateObserver implements ObserverInterface
         $state = $order->getState();
         $status = $order->getStatus();
 
-        $this->logger->debug('OrderUpdateObserver: ' . $state . ' - ' . $status, [
+        $this->logger->debug('Current State: ' . $state . ' | Status: ' . $status, [
             'orderId' => $order->getId(),
         ]);
 
