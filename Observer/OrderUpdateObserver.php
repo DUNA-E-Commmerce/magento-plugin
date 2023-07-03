@@ -24,7 +24,9 @@ class OrderUpdateObserver implements ObserverInterface
         $state = $order->getState();
         $status = $order->getStatus();
 
-        $this->logger->debug('OrderUpdateObserver: ' . $state . ' - ' . $status);
+        $this->logger->debug('OrderUpdateObserver: ' . $state . ' - ' . $status, [
+            'orderId' => $order->getId(),
+        ]);
 
         if ($state === 'canceled' || $status === 'canceled'){
             $orderId = $order->getId();
@@ -37,11 +39,6 @@ class OrderUpdateObserver implements ObserverInterface
             $payment = $order->getPayment();
             $orderToken = $payment->getAdditionalInformation('token');
             $orderDeunaStatus = $payment->getAdditionalInformation('deuna_payment_status');
-
-            $this->logger->debug('Cancel Order', [
-                'orderId' => $orderId,
-                'orderToken' => $orderToken,
-            ]);
 
             try {
                 $resp = $this->cancelOrder($orderToken, $orderDeunaStatus);
@@ -76,10 +73,6 @@ class OrderUpdateObserver implements ObserverInterface
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
-
-        $this->logger->debug('Cancel endpoint', [
-            'endpoint' => $endpoint,
-        ]);
 
         $requestHelper->request($endpoint, 'POST', '', $headers);
     }
