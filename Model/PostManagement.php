@@ -191,6 +191,7 @@ class PostManagement {
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
+               // $payment->setAdditionalInformation('banco_emisor', $paymentData['from_card']['card_holder']);
                 $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
                 $payment->setAdditionalInformation('number_of_installment', $paymentData['installments']);
@@ -287,6 +288,8 @@ class PostManagement {
         $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
 
         $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
+
+        $this->logger->debug('Quote: ', $order);
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
