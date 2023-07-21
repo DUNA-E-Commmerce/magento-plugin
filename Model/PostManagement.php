@@ -288,11 +288,8 @@ class PostManagement {
 
         $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
 
-        if ($order['shipping_options']['type'] != 'pickup'){
-            $quote->setCustomerFirstname($order['shipping_address']['first_name']);
-            $quote->setCustomerLastname($order['shipping_address']['last_name']);
-        }
-     
+        $quote->setCustomerFirstname($order['shipping_address']['first_name']);
+        $quote->setCustomerLastname($order['shipping_address']['last_name']);
         $quote->setCustomerEmail($email);
 
         $this->updateAddresses($quote, $order);
