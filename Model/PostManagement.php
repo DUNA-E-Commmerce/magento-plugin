@@ -289,8 +289,6 @@ class PostManagement {
 
         $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
 
-        $this->logger->debug('Quote: ', $order);
-
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
         $quote->setCustomerEmail($email);
