@@ -22,6 +22,14 @@
             <td><?=$paymentInfo->getAdditionalInformation('payment_method')?></td>
         </tr>
         <tr>
+            <td>Bank Name</td>
+            <td><?=$paymentInfo->getAdditionalInformation('banco_emisor')?></td>
+        </tr>
+        <tr>
+            <td>Country ISO</td>
+            <td><?=$paymentInfo->getAdditionalInformation('country_iso')?></td>
+        </tr>
+        <tr>
             <td>Card Type</td>
             <td><?=$paymentInfo->getAdditionalInformation('card_type')?></td>
         </tr>
