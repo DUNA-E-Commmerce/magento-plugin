@@ -187,11 +187,14 @@ class PostManagement {
 
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
+                $banco_emisor = isset($paymentData['from_card']['bank']) ? $paymentData['from_card']['bank'] : '';
+                $country_iso = isset($paymentData['from_card']['country_iso']) ? $paymentData['from_card']['country_iso'] : '';
+
                 $payment = $mgOrder->getPayment();
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
-                $payment->setAdditionalInformation('banco_emisor', $paymentData['from_card']['bank']);
-                $payment->setAdditionalInformation('country_iso', $paymentData['from_card']['country_iso']);
+                $payment->setAdditionalInformation('banco_emisor', $banco_emisor);
+                $payment->setAdditionalInformation('country_iso', $country_iso);
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
                 $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
