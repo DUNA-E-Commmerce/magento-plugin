@@ -190,6 +190,8 @@ class PostManagement {
                 $payment = $mgOrder->getPayment();
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
+                $payment->setAdditionalInformation('banco_emisor', $paymentData['from_card']['bank']);
+                $payment->setAdditionalInformation('country_iso', $paymentData['from_card']['country_iso']);
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
                 $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
