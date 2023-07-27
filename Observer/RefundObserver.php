@@ -22,11 +22,6 @@ class RefundObserver implements ObserverInterface
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
 
-    public function __construct(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-
     public function execute(Observer $observer)
     {
         $creditmemo = $observer->getEvent()->getCreditmemo();
