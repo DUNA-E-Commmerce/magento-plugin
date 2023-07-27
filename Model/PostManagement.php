@@ -187,8 +187,8 @@ class PostManagement {
 
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
-                $banco_emisor = isset($paymentData['from_card']['bank']) ? $paymentData['from_card']['bank'] : 'Bank Name';
-                $country_iso = isset($paymentData['from_card']['country_iso']) ? $paymentData['from_card']['country_iso'] : 'MX';
+                $banco_emisor = isset($paymentData['from_card']['bank']) ? $paymentData['from_card']['bank'] : '';
+                $country_iso = isset($paymentData['from_card']['country_iso']) ? $paymentData['from_card']['country_iso'] : '';
 
                 $payment = $mgOrder->getPayment();
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
