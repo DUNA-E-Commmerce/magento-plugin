@@ -50,6 +50,22 @@ class RefundObserver implements ObserverInterface
             'reason' => $reason,
             'creditmemo' => $creditmemo,
         ]);
+
+        try {
+            $resp = $this->refundOrder($orderToken, $reason, $totalRefunded);
+
+            $this->logger->debug("Order {$orderId} has been canceled successfully", [
+                'orderId' => $orderId,
+                'orderToken' => $orderToken,
+                'response' => $resp,
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->critical("Error canceling order ID: {$orderId}", [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'trace' => $e->getTrace(),
+            ]);
+        }
        
     }
 
@@ -71,6 +87,7 @@ class RefundObserver implements ObserverInterface
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
         $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
-
+        
+        return $response;
     }
 }
