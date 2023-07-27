@@ -25,27 +25,25 @@ class RefundObserver implements ObserverInterface
     public function execute(Observer $observer)
     {
         $creditmemo = $observer->getEvent()->getCreditmemo();
-        $creditmemo = $creditmemo->getData();
+        $order = $creditmemo->getOrder();
+        $orderId = $creditmemo->getOrderId();
+        $payment = $order->getPayment();
+        $orderToken = $payment->getAdditionalInformation('token');
+
 
         $reason = '';
-       // $reason = $creditmemo->getCustomerNote();
+        $reason = $creditmemo->getCustomerNote();
 
         $creditmemoId = $creditmemo->getId();
 
-        $baseTotalRefunded = $creditmemo->getBaseTotalRefunded();
-        $totalRefunded = $creditmemo->getTotalRefunded();
+        $creditmemo = $creditmemo->getData();
 
-        $order = $creditmemo->getOrder();
-        $orderId = $creditmemo->getOrderId();
-
-        $payment = $order->getPayment();
-        $orderToken = $payment->getAdditionalInformation('token');
+        $totalRefunded = $creditmemo["base_grand_total"];
 
         $this->logger->debug("Order {$orderId} in process Refund ...", [
             'creditmemoId' => $creditmemoId,
             'orderId' => $orderId,
             'orderToken' => $orderToken,
-            'baseTotalRefunded' => $baseTotalRefunded,
             'totalRefunded' => $totalRefunded,
             'reason' => $reason,
             'creditmemo' => $creditmemo,
