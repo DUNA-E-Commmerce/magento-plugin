@@ -48,9 +48,10 @@ class RefundObserver implements ObserverInterface
             'creditmemoId' => $creditmemoId,
             'orderId' => $orderId,
             'orderToken' => $orderToken,
-            'reason' => $commentText,
             'baseTotalRefunded' => $baseTotalRefunded,
             'totalRefunded' => $totalRefunded,
+            'reason' => $commentText,
+            'creditmemo' => $creditmemo,
         ]);
        
     }
