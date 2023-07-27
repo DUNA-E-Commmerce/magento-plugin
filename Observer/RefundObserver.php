@@ -29,9 +29,11 @@ class RefundObserver implements ObserverInterface
         $commentText = '';
         if (!empty($comments)) {
             foreach ($comments as $comment) {
-                $commentText = $comment->getComment();
+                $commentText .= $comment->getComment() . "\n";
             }
         }
+
+        $creditmemoId = $creditmemo->getId();
 
         $baseTotalRefunded = $creditmemo->getBaseTotalRefunded();
         $totalRefunded = $creditmemo->getTotalRefunded();
@@ -43,6 +45,7 @@ class RefundObserver implements ObserverInterface
         $orderToken = $payment->getAdditionalInformation('token');
 
         $this->logger->debug("Order {$orderId} in process Refund ...", [
+            'creditmemoId' => $creditmemoId,
             'orderId' => $orderId,
             'orderToken' => $orderToken,
             'reason' => $commentText,
@@ -50,10 +53,9 @@ class RefundObserver implements ObserverInterface
             'totalRefunded' => $totalRefunded,
         ]);
        
-
     }
 
-    private function refundOrder($orderToken)
+    private function refundOrder($orderToken, $reason, $amount)
     {
         $endpoint = "/merchants/orders/{$orderToken}/refund";
 
@@ -63,8 +65,8 @@ class RefundObserver implements ObserverInterface
         ];
 
         $body = [
-            'reason' => '',
-            'amount' => '',
+            'reason' => $reason,
+            'amount' => $amount,
         ];
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
