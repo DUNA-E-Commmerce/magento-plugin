@@ -52,7 +52,7 @@ class RefundObserver implements ObserverInterface
         try {
             $resp = $this->refundOrder($orderToken, $reason, $totalRefunded);
 
-            $this->logger->debug("Order {$orderId} has been canceled successfully", [
+            $this->logger->debug("Order {$orderId} has been Refunded successfully", [
                 'orderId' => $orderId,
                 'orderToken' => $orderToken,
                 'response' => $resp,
