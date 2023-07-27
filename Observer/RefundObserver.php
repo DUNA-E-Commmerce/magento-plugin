@@ -25,13 +25,10 @@ class RefundObserver implements ObserverInterface
     public function execute(Observer $observer)
     {
         $creditmemo = $observer->getEvent()->getCreditmemo();
-        $comments = $creditmemo->getCommentsCollection();
-        $commentText = '';
-        if (!empty($comments)) {
-            foreach ($comments as $comment) {
-                $commentText .= $comment->getComment() . "\n";
-            }
-        }
+        $creditmemo = $creditmemo->getData();
+
+        $reason = '';
+        $reason = $creditmemo->getCustomerNote();
 
         $creditmemoId = $creditmemo->getId();
 
@@ -50,8 +47,8 @@ class RefundObserver implements ObserverInterface
             'orderToken' => $orderToken,
             'baseTotalRefunded' => $baseTotalRefunded,
             'totalRefunded' => $totalRefunded,
-            'reason' => $commentText,
-            'creditmemo' => $creditmemo->getData(),
+            'reason' => $reason,
+            'creditmemo' => $creditmemo,
         ]);
        
     }
