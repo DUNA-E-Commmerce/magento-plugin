@@ -51,7 +51,7 @@ class RefundObserver implements ObserverInterface
             'baseTotalRefunded' => $baseTotalRefunded,
             'totalRefunded' => $totalRefunded,
             'reason' => $commentText,
-            'creditmemo' => $creditmemo,
+            'creditmemo' => $creditmemo->getData(),
         ]);
        
     }
