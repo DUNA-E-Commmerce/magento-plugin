@@ -2,9 +2,10 @@
 
 namespace DUna\Payments\Observer;
 
-use Psr\Log\LoggerInterface;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
+use Monolog\Logger;
+use Logtail\Monolog\LogtailHandler;
 
 class RefundObserver implements ObserverInterface
 {
