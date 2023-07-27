@@ -25,8 +25,52 @@ class RefundObserver implements ObserverInterface
     public function execute(Observer $observer)
     {
         $creditmemo = $observer->getEvent()->getCreditmemo();
+        $comments = $creditmemo->getCommentsCollection();
+        $commentText = '';
+        if (!empty($comments)) {
+            foreach ($comments as $comment) {
+                $commentText = $comment->getComment();
+            }
+        }
+
+        $baseTotalRefunded = $creditmemo->getBaseTotalRefunded();
+        $totalRefunded = $creditmemo->getTotalRefunded();
+
         $order = $creditmemo->getOrder();
         $orderId = $creditmemo->getOrderId();
-        $this->logger->debug('Refund Order Id: ' . $orderId);
+
+        $payment = $order->getPayment();
+        $orderToken = $payment->getAdditionalInformation('token');
+
+        $this->logger->debug("Order {$orderId} in process Refund ...", [
+            'orderId' => $orderId,
+            'orderToken' => $orderToken,
+            'reason' => $commentText,
+            'baseTotalRefunded' => $baseTotalRefunded,
+            'totalRefunded' => $totalRefunded,
+        ]);
+       
+
+    }
+
+    private function refundOrder($orderToken)
+    {
+        $endpoint = "/merchants/orders/{$orderToken}/refund";
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+        ];
+
+        $body = [
+            'reason' => '',
+            'amount' => '',
+        ];
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
+
     }
 }
