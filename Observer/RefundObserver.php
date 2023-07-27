@@ -28,7 +28,7 @@ class RefundObserver implements ObserverInterface
         $creditmemo = $creditmemo->getData();
 
         $reason = '';
-        $reason = $creditmemo->getCustomerNote();
+       // $reason = $creditmemo->getCustomerNote();
 
         $creditmemoId = $creditmemo->getId();
 
