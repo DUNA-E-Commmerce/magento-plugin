@@ -70,14 +70,13 @@ class RefundObserver implements ObserverInterface
                 return;
             }else{
 
-                $response = json_decode($resp['response'], true);
-                $bodyJson = isset($response['body_json']) ? $response['body_json'] : null;
+                $response = json_decode($resp, true);
 
                 $this->logger->debug("Order {$orderId} has been Refunded successfully", [
                     'orderId' => $orderId,
                     'orderToken' => $orderToken,
                     'response' => $resp,
-                    'response2' => $bodyJson,
+                    'response2' => $response,
                 ]);
             }
             
