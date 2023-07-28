@@ -54,22 +54,28 @@ class RefundObserver implements ObserverInterface
 
 
             if (isset($resp['error']) && $resp['error']['code'] === 'DP-6000') {
+                
+                $this->logger->debug("Order {$orderId} has been error in Refunded", [
+                    'orderId' => $orderId,
+                    'orderToken' => $orderToken,
+                    'response' => $resp,
+                    'response2' => $resp['response_json'],
+                ]);
+
                 $errorDescription = $resp['error']['description'];
     
-                // Set the error message to the credit memo
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
-    
-                // Do not continue with the refund process
+
                 return;
+            }else{
+                $this->logger->debug("Order {$orderId} has been Refunded successfully", [
+                    'orderId' => $orderId,
+                    'orderToken' => $orderToken,
+                    'response' => $resp,
+                    'response2' => $resp['response_json'],
+                ]);
             }
-
-
-            $this->logger->debug("Order {$orderId} has been Refunded successfully", [
-                'orderId' => $orderId,
-                'orderToken' => $orderToken,
-                'response' => $resp,
-            ]);
             
 
         } catch (\Exception $e) {
