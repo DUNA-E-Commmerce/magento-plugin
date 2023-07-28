@@ -65,7 +65,8 @@ class RefundObserver implements ObserverInterface
                 ]);
 
                 $errorDescription = $data['error']['description'];
-
+                
+                $creditmemo->setState('Canceled');
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
 
