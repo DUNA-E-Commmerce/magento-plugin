@@ -70,8 +70,12 @@ class RefundObserver implements ObserverInterface
                 return;
             }else{
 
+                $start_index = strpos($resp, '{');
+                $json_string = substr($resp, $start_index);
+                $data = json_decode($json_string, true);
+   
                 echo '<pre>';
-                var_dump($resp);
+                var_dump($data);
                 echo '</pre>';
                 die();
 
