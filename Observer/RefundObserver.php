@@ -70,10 +70,8 @@ class RefundObserver implements ObserverInterface
                 return;
             }else{
 
-                $responseData = json_decode($resp, true);
-
                 echo '<pre>';
-                var_dump($responseData);
+                var_dump($resp);
                 echo '</pre>';
                 die();
 
