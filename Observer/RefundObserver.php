@@ -69,6 +69,7 @@ class RefundObserver implements ObserverInterface
                 $creditmemo->setShouldCloseTransaction(false);
                 $creditmemo->setBaseTotalRefunded(0);
                 $creditmemo->setTotalRefunded(0);
+                $creditmemo->setState('canceled');
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
 
