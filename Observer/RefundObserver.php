@@ -36,9 +36,9 @@ class RefundObserver implements ObserverInterface
 
         $creditmemoId = $creditmemo->getId();
 
-        $creditmemo = $creditmemo->getData();
+        $creditmemoData = $creditmemo->getData();
 
-        $totalRefunded = $creditmemo["base_grand_total"];
+        $totalRefunded = $creditmemoData["base_grand_total"];
 
         $this->logger->debug("Order {$orderId} in process Refund ...", [
             'creditmemoId' => $creditmemoId,
@@ -46,7 +46,7 @@ class RefundObserver implements ObserverInterface
             'orderToken' => $orderToken,
             'totalRefunded' => $totalRefunded,
             'reason' => $reason,
-            'creditmemo' => $creditmemo,
+            'creditmemo' => $creditmemoData,
         ]);
 
         try {
@@ -65,7 +65,7 @@ class RefundObserver implements ObserverInterface
                 ]);
 
                 $errorDescription = $data['error']['description'];
-    
+
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
 
