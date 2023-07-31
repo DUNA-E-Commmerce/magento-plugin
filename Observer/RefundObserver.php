@@ -69,7 +69,7 @@ class RefundObserver implements ObserverInterface
                // $creditmemo->setShouldCloseTransaction(false);
                // $creditmemo->setBaseTotalRefunded(0);
                // $creditmemo->setTotalRefunded(0);
-                $creditmemo->setState('pending');
+                $creditmemo->setState(Magento\Sales\Model\Order\Creditmemo::STATE_CANCELED);
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
 
