@@ -67,13 +67,14 @@ class RefundObserver implements ObserverInterface
 
                 $errorDescription = $data['error']['description'];
                 
+                throw new LocalizedException(__("Refund Error: $errorDescription"));
+                
                // $creditmemo->setShouldCloseTransaction(false);
                // $creditmemo->setBaseTotalRefunded(0);
                // $creditmemo->setTotalRefunded(0);
                 $creditmemo->setState(\Magento\Sales\Model\Order\Creditmemo::STATE_CANCELED);
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
-                throw new LocalizedException(__("Refund Error: $errorDescription"));
 
                 return;
             }else{
