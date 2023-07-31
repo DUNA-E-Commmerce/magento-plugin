@@ -15,7 +15,7 @@
         <observer name="duna_payments_apply_discount_observer" instance="DUna\Payments\Observer\ApplyDiscountObserver" />
     </event>
 
-    <event name="sales_order_creditmemo_register">
+    <event name="sales_order_creditmemo_save_after">
         <observer name="duna_payments_refund_observer" instance="DUna\Payments\Observer\RefundObserver" />
     </event>
 </config>
