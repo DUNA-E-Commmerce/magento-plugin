@@ -4,6 +4,7 @@ namespace DUna\Payments\Observer;
 
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
 
@@ -72,6 +73,7 @@ class RefundObserver implements ObserverInterface
                 $creditmemo->setState(\Magento\Sales\Model\Order\Creditmemo::STATE_CANCELED);
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
+                throw new LocalizedException(__("Refund Error: $errorDescription"));
 
                 return;
             }else{
