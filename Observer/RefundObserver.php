@@ -32,8 +32,9 @@ class RefundObserver implements ObserverInterface
         $orderToken = $payment->getAdditionalInformation('token');
 
 
-        $reason = 'Magento Refound';
+        
         $reason = $creditmemo->getCustomerNote();
+        $reason = empty($reason) ? 'Magento Refund' : $reason;
 
         $creditmemoId = $creditmemo->getId();
 
