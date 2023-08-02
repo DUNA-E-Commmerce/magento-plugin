@@ -32,7 +32,7 @@ class RefundObserver implements ObserverInterface
         $orderToken = $payment->getAdditionalInformation('token');
 
 
-        $reason = '';
+        $reason = 'Magento Refound';
         $reason = $creditmemo->getCustomerNote();
 
         $creditmemoId = $creditmemo->getId();
@@ -57,7 +57,7 @@ class RefundObserver implements ObserverInterface
             $json_string = substr($resp, $start_index);
             $data = json_decode($json_string, true);
 
-            if (isset($data['error']) && $data['error']['code'] === 'DP-6000') {
+            if (isset($data['error'])) {
                 
                 $this->logger->debug("Order {$orderId} has been error in Refunded", [
                     'orderId' => $orderId,
