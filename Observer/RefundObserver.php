@@ -34,7 +34,6 @@ class RefundObserver implements ObserverInterface
 
         
         $reason = $creditmemo->getCustomerNote();
-        $reason = empty($reason) ? 'Magento Refund' : $reason;
 
         $creditmemoId = $creditmemo->getId();
 
@@ -88,9 +87,8 @@ class RefundObserver implements ObserverInterface
                 ]);
             }
             
-
         } catch (\Exception $e) {
-            $this->logger->critical("Error canceling order ID: {$orderId}", [
+            $this->logger->critical("Error Refunded order ID: {$orderId}", [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode(),
                 'trace' => $e->getTrace(),
@@ -102,6 +100,8 @@ class RefundObserver implements ObserverInterface
     private function refundOrder($orderToken, $reason, $amount)
     {
         $endpoint = "/merchants/orders/{$orderToken}/refund";
+
+        $reason = empty($reason) ? 'Magento Refund' : $reason;
 
         $headers = [
             'Accept: application/json',
