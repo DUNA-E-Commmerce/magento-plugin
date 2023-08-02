@@ -112,6 +112,12 @@ class RefundObserver implements ObserverInterface
             'amount' => $amount,
         ];
 
+        $this->logger->debug("Order Token {$orderToken} Refound in Progress...", [
+            'endpoint' => $endpoint,
+            'headers' => $headers,
+            'body' => $body
+        ]);
+
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
