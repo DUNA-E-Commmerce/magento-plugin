@@ -24,7 +24,11 @@ class OrderUpdateObserver implements ObserverInterface
         $state = $order->getState();
         $status = $order->getStatus();
 
-        if ($state === 'canceled' || $status === 'canceled'){
+        $this->logger->debug('Current State: ' . $state . ' | Status: ' . $status, [
+            'orderId' => $order->getId(),
+        ]);
+
+        if (in_array($state, ['canceled', 'closed']) || in_array($status, ['canceled', 'closed'])){
             $orderId = $order->getId();
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
             $orderRepository = $objectManager->get(\Magento\Sales\Api\OrderRepositoryInterface::class);
@@ -36,13 +40,9 @@ class OrderUpdateObserver implements ObserverInterface
             $orderToken = $payment->getAdditionalInformation('token');
             $orderDeunaStatus = $payment->getAdditionalInformation('deuna_payment_status');
 
-            $this->logger->debug('Cancel Order', [
-                'orderId' => $orderId,
-                'orderToken' => $orderToken,
-            ]);
-
             try {
                 $resp = $this->cancelOrder($orderToken, $orderDeunaStatus);
+
                 $this->logger->debug("Order {$orderId} has been canceled successfully", [
                     'orderId' => $orderId,
                     'orderToken' => $orderToken,
@@ -70,6 +70,7 @@ class OrderUpdateObserver implements ObserverInterface
             'Accept: application/json',
             'Content-Type: application/json',
         ];
+
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
 
@@ -77,3 +78,4 @@ class OrderUpdateObserver implements ObserverInterface
     }
 
 }
+

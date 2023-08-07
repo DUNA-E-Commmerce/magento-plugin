@@ -14,8 +14,20 @@
             <td><?=$paymentInfo->getAdditionalInformation('processor')?></td>
         </tr>
         <tr>
+            <td>Authentication Method</td>
+            <td><?=$paymentInfo->getAdditionalInformation('authentication_method')?></td>
+        </tr>
+        <tr>
             <td>Payment Method</td>
             <td><?=$paymentInfo->getAdditionalInformation('payment_method')?></td>
+        </tr>
+        <tr>
+            <td>Bank Name</td>
+            <td><?=$paymentInfo->getAdditionalInformation('banco_emisor')?></td>
+        </tr>
+        <tr>
+            <td>Country ISO</td>
+            <td><?=$paymentInfo->getAdditionalInformation('country_iso')?></td>
         </tr>
         <tr>
             <td>Card Type</td>
@@ -32,10 +44,6 @@
         <tr>
             <td>No. Installments</td>
             <td><?=$paymentInfo->getAdditionalInformation('number_of_installment')?></td>
-        </tr>
-        <tr>
-            <td>Authentication</td>
-            <td><?=$paymentInfo->getAdditionalInformation('authentication_method')?></td>
         </tr>
         <tr>
             <td>DEUNA Token</td>

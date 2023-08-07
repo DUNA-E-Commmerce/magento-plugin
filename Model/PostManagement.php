@@ -18,10 +18,12 @@ use DUna\Payments\Model\Order\ShippingMethods;
 use DUna\Payments\Model\OrderTokens;
 use Monolog\Logger;
 use Logtail\Monolog\LogtailHandler;
+use Magento\Sales\Model\Order;
+use Magento\Sales\Api\OrderManagementInterface;
 
 class PostManagement {
 
-    const LOGTAIL_SOURCE = 'plataformas_magento';
+    const LOGTAIL_SOURCE = 'magento-bedbath-mx';
     const LOGTAIL_SOURCE_TOKEN = 'DB8ad3bQCZPAshmAEkj9hVLM';
     const TRANSACTION_TYPES = [
         'approved' => \Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE,
@@ -85,6 +87,8 @@ class PostManagement {
 
     protected $deunaShipping;
 
+    protected $orderManagement;
+
     public function __construct(
         Request $request,
         QuoteManagement $quoteManagement,
@@ -98,6 +102,7 @@ class PostManagement {
         StoreManagerInterface $storeManager,
         OrderRepositoryInterface $orderRepository,
         ShippingMethods $deunaShipping,
+        OrderManagementInterface $orderManagement
     ) {
         $this->request = $request;
         $this->quoteManagement = $quoteManagement;
@@ -111,6 +116,7 @@ class PostManagement {
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->deunaShipping = $deunaShipping;
+        $this->orderManagement = $orderManagement;
         $this->logger = new Logger(self::LOGTAIL_SOURCE);
         $this->logger->pushHandler(new LogtailHandler(self::LOGTAIL_SOURCE_TOKEN));
     }
@@ -142,7 +148,11 @@ class PostManagement {
 
             $active = $quote->getIsActive();
 
+            $output = [];
+
             if ($active) {
+                $invoice_status = 1;
+
                 $this->logger->debug("Quote ({$quote->getId()}) is active", [
                     'processor' => $paymentProcessor,
                     'paymentStatus' => $payment_status,
@@ -152,9 +162,14 @@ class PostManagement {
                 if($paymentMethod!='cash') {
                     if($payment_status!='processed' && $payment_status!='authorized')
                         return;
+
+                    if($payment_status=='processed') {
+                        $invoice_status = 2;
+                    }
                 }
 
                 $mgOrder = $this->quoteManagement->submit($quote);
+
 
                 $this->logger->debug("Order created with status {$mgOrder->getState()}");
 
@@ -172,10 +187,14 @@ class PostManagement {
 
                 $this->updatePaymentState($mgOrder, $payment_status, $totalAmount);
 
-                $payment = $mgOrder->getPayment();
+                $banco_emisor = isset($paymentData['from_card']['bank']) ? $paymentData['from_card']['bank'] : '';
+                $country_iso = isset($paymentData['from_card']['country_iso']) ? $paymentData['from_card']['country_iso'] : '';
 
+                $payment = $mgOrder->getPayment();
                 $payment->setAdditionalInformation('processor', $paymentProcessor);
                 $payment->setAdditionalInformation('card_type', $paymentData['from_card']['card_brand']);
+                $payment->setAdditionalInformation('banco_emisor', $banco_emisor);
+                $payment->setAdditionalInformation('country_iso', $country_iso);
                 $payment->setAdditionalInformation('card_bin', $paymentData['from_card']['first_six']);
                 $payment->setAdditionalInformation('auth_code', $paymentData['external_transaction_id']);
                 $payment->setAdditionalInformation('payment_method', $paymentMethod);
@@ -202,7 +221,15 @@ class PostManagement {
                     'response' => $output,
                 ]);
 
-                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId());
+                ObjectManager::getInstance()->create(CreateInvoice::class)->execute($mgOrder->getId(), $invoice_status);
+
+                if($paymentProcessor=='paypal_commerce') {
+                    $paypalChanged = $this->helper->savePaypalCode($payment->getId());
+
+                    $this->logger->debug("Paypal code saved", [
+                        'paypalChanged' => $paypalChanged,
+                    ]);
+                }
 
                 echo json_encode($output);
 
@@ -242,6 +269,8 @@ class PostManagement {
     }
 
     /**
+     * Quote Prepare
+     *
      * @param $order
      * @return \Magento\Quote\Api\Data\CartInterface
      * @throws \Magento\Framework\Exception\NoSuchEntityException
@@ -262,7 +291,7 @@ class PostManagement {
 
         $this->logger->debug("DEUNA Payment Method: {$this->mapPaymentMethod($processor)}");
 
-        $quote->getPayment()->setMethod('deunacheckout');
+        $quote->getPayment()->setMethod($this->mapPaymentMethod($processor));
 
         $quote->setCustomerFirstname($order['shipping_address']['first_name']);
         $quote->setCustomerLastname($order['shipping_address']['last_name']);
@@ -385,20 +414,6 @@ class PostManagement {
         $quote->getShippingAddress()->addData($shipping_address);
     }
 
-    public function sendOrderId($orderId, $status = 'succeeded')
-    {
-        $body = array(
-            "status" => $status,
-            "data" => array(
-                "order_id" => $orderId
-            )
-        );
-
-        $response = $this->orderTokens->request(json_encode($body));
-
-        return json_encode($response);
-    }
-
     public function isSuccessStatus($status)
     {
         switch ($status) {
@@ -427,6 +442,12 @@ class PostManagement {
             $payment = $order->getPayment();
             $amount = $payment->getAmountAuthorized();
 
+            $invoiceData = $order->getInvoiceCollection();
+
+            $invoiceData = $invoiceData->getData();
+
+            $this->logger->info('Invoice State', $invoiceData);
+
             return $this->capturePayment($payment, $amount);
         } catch (\Exception $e) {
             $err = [
@@ -438,6 +459,30 @@ class PostManagement {
 
             return $err;
         }
+    }
+
+    public function captureDeuna($payment)
+    {
+
+        $orderToken = $payment->getAdditionalInformation('token');
+
+        $endpoint = "/merchants/orders/{$orderToken}/capture";
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+        ];
+
+        $body = [
+            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
+        ];
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
+
+        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
+
+        return $response;
     }
 
     /**
@@ -513,29 +558,6 @@ class PostManagement {
         }
     }
 
-    public function captureDeuna($payment){
-
-        $orderToken = $payment->getAdditionalInformation('token');
-
-        $endpoint = "/merchants/orders/{$orderToken}/capture";
-
-        $headers = [
-            'Accept: application/json',
-            'Content-Type: application/json',
-        ];
-
-        $body = [
-            'amount' => $this->helper->priceFormat($payment->getAmountAuthorized()),
-        ];
-
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $requestHelper = $objectManager->get(\DUna\Payments\Helper\RequestHelper::class);
-
-        $response = $requestHelper->request($endpoint, 'POST', json_encode($body), $headers);
-
-        return $response;
-    }
-
     public function createTransaction($payment, $type = 'approved', $parentId = null, $amount = 0, $additionalInfo = [])
     {
         $txnId = "{$type}-{$payment->getId()}";
@@ -608,6 +630,9 @@ class PostManagement {
                 break;
             case 'evopayment_3ds':
                 return 'tns_hosted';
+                break;
+            case 'paypal_commerce':
+                return 'paypal_express_tmp';
                 break;
             default:
                 return 'deunacheckout';

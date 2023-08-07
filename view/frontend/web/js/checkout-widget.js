@@ -12,7 +12,6 @@ function isStaging() {
 }
 
 function updateCheckoutButton(radioElements,checkoutButton) {
-    console.log('enable or disabled');
     for (var i = 0; i < radioElements.length; i++) {
         if (radioElements[i].checked) {
             checkoutButton.disabled = false;
@@ -22,8 +21,52 @@ function updateCheckoutButton(radioElements,checkoutButton) {
     checkoutButton.disabled = true;
 }
 
+function addListenersToRadios(radioElements,checkoutButton) {
+    for (var i = 0; i < radioElements.length; i++) {
+        radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
+    }
+}
+
+function verifySelectedRadioShipping(checkoutButton) {
+    const element = document.querySelector('[id*="shipping-method-forms"]');
+
+    if (element) {
+        const radioButtons = document.querySelectorAll('#' + element.id + ' input[type="radio"]');
+
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                checkoutButton.disabled = false;
+            });
+        });
+        const isRadioSelected = Array.from(radioButtons).some(radio => radio.checked);
+
+        if (isRadioSelected) {
+            checkoutButton.disabled = false;
+        } else {
+            checkoutButton.disabled = true;
+        }
+
+    } else {
+        console.log('error Buscando formulario')
+    }
+
+}
+
+var verifyToAddListeners = function() {
+    var buttons = document.querySelectorAll('button.select-bopis-store');
+    if (buttons.length > 0) {
+        buttons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
+                checkoutButton2.disabled = false;
+            });
+        });
+        clearInterval(intervalId);
+    }
+};
+
 if(isDev()) {
-    env = 'Staging';
+    env = 'Develop';
 } else if(isStaging()) {
     env = 'Staging';
 } else {
@@ -44,9 +87,9 @@ let components = [
 let deunaEnv;
 
 if(isDev()) {
-    deunaEnv = 'staging';
-    components.push('https://cdn.stg.deuna.io/cdl/index.js');
-    components.push(`https://cdn.stg.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
+    deunaEnv = 'develop';
+    components.push('https://cdn.dev.deuna.io/cdl/index.js');
+    components.push(`https://cdn.dev.deuna.io/checkout-widget/${deuna_widget_version}/index.js`);
 } else if(isStaging()) {
     deunaEnv = 'staging';
     components.push('https://cdn.stg.deuna.io/cdl/index.js');
@@ -62,7 +105,55 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
 
     window.DeunaCDL = DeunaCDL;
 
+    var intervalId = setInterval(verifyToAddListeners, 500);
+
+    setTimeout(function() {
+        var checkoutButton2 = document.getElementById('duna-checkout').querySelector('button');
+        checkoutButton2.disabled = true;
+
+        let radioElement3 = document.getElementById('cs_method_bopis_bopis');
+        if (radioElement3) {
+            radioElement3.disabled = true;
+            radioElement3.addEventListener('change', function() {
+                console.log('El input radio ha sido seleccionado');
+            });
+        }
+        verifySelectedRadioShipping(checkoutButton2);
+
+    }, 500);
+
+    setTimeout(function() {
+        var checkoutButton3 = document.getElementById('duna-checkout').querySelector('button');
+
+        let radioElement4 = document.getElementById('cs_method_bopis_bopis');
+        if (radioElement4) {
+            radioElement4.disabled = true;
+            radioElement4.addEventListener('change', function() {
+                console.log('El input radio ha sido seleccionado');
+            });
+        }
+        verifySelectedRadioShipping(checkoutButton3);
+
+    }, 700);
+
     window.addEventListener('load', (event) => {
+
+        var shippingMethodForm = document.getElementById('block-shipping-top');
+
+        if (shippingMethodForm != null) {
+            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
+            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
+            checkoutButton.disabled = true;
+
+            var radioElement2 = document.getElementById('cs_method_bopis_bopis');
+            if (radioElement2) {
+                radioElement2.disabled = true;
+            }
+
+            updateCheckoutButton( radioElements, checkoutButton);
+            addListenersToRadios( radioElements, checkoutButton);
+        }
+
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -70,6 +161,10 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                     var response = xhr.responseText;
                     var div = document.createElement('div');
                     div.innerHTML = response;
+                    var radioElement = document.getElementById('cs_method_bopis_bopis');
+                    if (radioElement) {
+                     radioElement.disabled = true;
+                    }
 
                     var tdElements = div.querySelectorAll('td');
 
@@ -79,7 +174,14 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                         var parentElement = csMethodBopisBopis.parentNode;
                         parentElement.setAttribute('hidden', 'true');
                     }
-                    console.log('La petición GET ha finalizado con exito!');
+
+                    setTimeout(function() {
+                        verifySelectedRadioShipping(checkoutButton);
+                    }, 500);
+
+                    setTimeout(function() {
+                        verifySelectedRadioShipping(checkoutButton);
+                    }, 1000);
 
                 } else {
                     console.log('La petición GET ha finalizado con un error.');
@@ -93,22 +195,6 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
 
         xhr.open('GET', domain + '/storepickup/stores/index/?_=' + Date.now());
         xhr.send();
-    });
-
-    document.addEventListener("DOMContentLoaded", function() {
-        console.log('DOM Cargados');
-        var shippingMethodForm = document.getElementById('block-shipping-top');
-
-        if (shippingMethodForm != null) {
-            var radioElements = shippingMethodForm.querySelectorAll('input[type="radio"]');
-            var checkoutButton = document.getElementById('duna-checkout').querySelector('button');
-
-            updateCheckoutButton( radioElements, checkoutButton);
-
-            for (var i = 0; i < radioElements.length; i++) {
-                radioElements[i].addEventListener('change', updateCheckoutButton(radioElements, checkoutButton));
-            }
-        }
     });
 
     return Component.extend({
@@ -154,7 +240,7 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
                 await self.dunaCheckout.show();
             })
             .error(function (error, status, message) {
-                alert(`Error (${status}): ${message}`);
+                alert(`Error DEUNA (${status}): Falló la petición para obtener el token de pago.`);
 
                 window.location.reload();
             });
@@ -170,3 +256,4 @@ define(components, function ($, Component, ko, Url, DeunaCDL, DunaCheckout) {
         }
     });
 });
+

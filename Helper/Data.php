@@ -2,6 +2,7 @@
 
 namespace DUna\Payments\Helper;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Store\Model\ScopeInterface;
@@ -22,12 +23,19 @@ class Data extends AbstractHelper
      */
     protected $logger;
 
+    /**
+     * @var ResourceConnection
+     */
+    protected $resource;
+
     public function __construct(
         Context $context,
-        Logger $logger
+        Logger $logger,
+        ResourceConnection $resource
     ) {
         parent::__construct($context);
         $this->logger = $logger;
+        $this->resource = $resource;
     }
 
     /**
@@ -73,12 +81,15 @@ class Data extends AbstractHelper
 
         switch($domain) {
             case str_contains($domain, 'dev.'):
-                return 'staging';
+                return 'develop';
                 break;
             case str_contains($domain, 'local.'):
                 return 'develop';
                 break;
             case str_contains($domain, 'stg.'):
+                return 'staging';
+                break;
+            case str_contains($domain, 'mcstaging.'):
                 return 'staging';
                 break;
             default:
@@ -107,5 +118,28 @@ class Data extends AbstractHelper
         $priceFix = number_format(is_null($price) ? 0 : $price, 2, '.', '');
 
         return (int) round($priceFix * 100, 1 , PHP_ROUND_HALF_UP);;
+    }
+
+    public function savePaypalCode($id)
+    {
+        $paypalCode = 'paypal_express';
+        $output = null;
+        $connection  = $this->resource->getConnection();
+
+        // $tableName = $connection->getTableName('sales_order_payment');
+        // $data = [
+        //     'method' => $paypalCode,
+        // ];
+        // $where = [
+        //     'entity_id = ?' => (int)$id,
+        // ];
+
+        $sql = "UPDATE sales_order_payment
+                SET method = '$paypalCode'
+                WHERE entity_id = $id";
+
+        $connection->query($sql);
+
+        return $sql;
     }
 }

@@ -18,4 +18,7 @@
             </argument>
         </arguments>
     </type>
+    <type name="Magento\Paypal\Model\Express">
+        <plugin name="disable_paypal_express_observer" type="DUna\Payments\Plugin\DisablePaypalExpressObserver" sortOrder="1" disabled="false" />
+    </type>
 </config>
