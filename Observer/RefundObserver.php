@@ -66,13 +66,6 @@ class RefundObserver implements ObserverInterface
                 ]);
 
                 $errorDescription = $data['error']['description'];
-
-                $creditmemo->setBaseGrandTotal(0); 
-                $creditmemo->setGrandTotal(0);
-                $creditmemo->setBaseSubtotalRefunded(0); 
-                $creditmemo->setSubtotalRefunded(0); 
-
-                $creditmemo->setState(\Magento\Sales\Model\Order\Creditmemo::STATE_CANCELED);
                 $creditmemo->addComment("Refund Error: $errorDescription");
                 $creditmemo->save();
 
