@@ -48,6 +48,7 @@
                     <comment> The public will be used at the browser level (In frontend. Example: When configuring a JS plugin)</comment>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                 </field>
+           
             </group>
         </section>
     </system>
